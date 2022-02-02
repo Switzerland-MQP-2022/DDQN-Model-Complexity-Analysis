@@ -25,7 +25,6 @@ SOFTWARE.
 
 import logging
 import tempfile
-import time
 
 import gym
 import numpy as np
@@ -58,14 +57,10 @@ class DataSource:
 
     """
 
-    def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
+    def __init__(self, trading_days=252, ticker='AAPL', normalize=True):
         self.ticker = ticker
         self.trading_days = trading_days
         self.normalize = normalize
-        self.testing_days = testing_days
-        self.testData = 0
-        self.trainData = 0
-        self.training = True
         self.data = self.load_data()
         self.preprocess_data()
         self.min_values = self.data.min()
@@ -76,19 +71,13 @@ class DataSource:
     def load_data(self):
         log.info('loading data for {}...'.format(self.ticker))
         idx = pd.IndexSlice
-
-        with pd.HDFStore('../data/SPYAssets.h5') as store:
-            df = (store['SAP'])
-        # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
-        df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
-
-        #with pd.HDFStore('../data/assets.h5') as store:
-        #    df = (store["quandl/wiki/prices"]
-         #         .loc[idx[:, self.ticker],
-         #              ['adj_close', 'adj_volume', 'adj_low', 'adj_high']]
-         #         .dropna()
-         #         .sort_index())
-        #df.columns = ['close', 'volume', 'low', 'high']
+        with pd.HDFStore('../data/assets.h5') as store:
+            df = (store['quandl/wiki/prices']
+                  .loc[idx[:, self.ticker],
+                       ['adj_close', 'adj_volume', 'adj_low', 'adj_high']]
+                  .dropna()
+                  .sort_index())
+        df.columns = ['close', 'volume', 'low', 'high']
         log.info('got data for {}...'.format(self.ticker))
         return df
 
@@ -96,19 +85,20 @@ class DataSource:
         """calculate returns and percentiles, then removes missing values"""
 
         self.data['returns'] = self.data.close.pct_change()
-        #self.data['ret_2'] = self.data.close.pct_change(2)
-        #self.data['ret_5'] = self.data.close.pct_change(5)
-        #self.data['ret_10'] = self.data.close.pct_change(10)
-        #self.data['ret_21'] = self.data.close.pct_change(21)
-        #self.data['rsi'] = talib.STOCHRSI(self.data.close)[1]
-        #self.data['macd'] = talib.MACD(self.data.close)[1]
-        #self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['rsi'] = talib.STOCHRSI(self.data.close)[1]
+        self.data['macd'] = talib.MACD(self.data.close)[1]
+        self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
 
-        #slowk, slowd = talib.STOCH(self.data.high, self.data.low, self.data.close)
-        #self.data['stoch'] = slowd - slowk
-        #self.data['ultosc'] = talib.ULTOSC(self.data.high, self.data.low, self.data.close)
+        slowk, slowd = talib.STOCH(self.data.high, self.data.low, self.data.close)
+        self.data['stoch'] = slowd - slowk
+        self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
+        self.data['ultosc'] = talib.ULTOSC(self.data.high, self.data.low, self.data.close)
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .drop(['high', 'low', 'close', 'volume'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
@@ -119,37 +109,20 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
-
-        self.testData = self.data.tail(self.testing_days)
-        self.trainData = self.data.head(len(self.data)-self.testing_days)
-
         log.info(self.data.info())
 
-    def reset(self, training=True):
+    def reset(self):
         """Provides starting index for time series and resets step"""
-        self.training = training
-        if training:
-            high = len(self.trainData.index) - self.trading_days
-            self.offset = np.random.randint(low=0, high=high)
-            self.step = 0
-        else:
-            high = len(self.testData.index) - self.trading_days
-            self.offset = np.random.randint(low=0, high=high)
-            self.step = 0
-
+        high = len(self.data.index) - self.trading_days
+        self.offset = np.random.randint(low=0, high=high)
+        self.step = 0
 
     def take_step(self):
         """Returns data for current trading day and done signal"""
-        if self.training:
-            obs = self.trainData.iloc[self.offset + self.step].values
-            self.step += 1
-            done = self.step > self.trading_days
-            return obs, done
-        else:
-            obs = self.testData.iloc[self.offset + self.step].values
-            self.step += 1
-            done = self.step > self.trading_days
-            return obs, done
+        obs = self.data.iloc[self.offset + self.step].values
+        self.step += 1
+        done = self.step > self.trading_days
+        return obs, done
 
 
 class TradingSimulator:
@@ -196,7 +169,6 @@ class TradingSimulator:
 
         end_position = action - 1  # short, neutral, long
         n_trades = end_position - start_position
-        time.sleep(1)
         self.positions[self.step] = end_position
         self.trades[self.step] = n_trades
 
@@ -239,7 +211,6 @@ class TradingEnvironment(gym.Env):
     - 0: SHORT
     - 1: HOLD
     - 2: LONG
-
 
     Trading has an optional cost (default: 10bps) of the change in position value.
     Going from short to long implies two trades.
@@ -284,9 +255,9 @@ class TradingEnvironment(gym.Env):
                                                 market_return=observation[0])
         return observation, reward, done, info
 
-    def reset(self, training=True):
+    def reset(self):
         """Resets DataSource and TradingSimulator; returns first observation"""
-        self.data_source.reset(training)
+        self.data_source.reset()
         self.simulator.reset()
         return self.data_source.take_step()[0]
 
