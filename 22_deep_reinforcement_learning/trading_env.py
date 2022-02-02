@@ -196,7 +196,6 @@ class TradingSimulator:
 
         end_position = action - 1  # short, neutral, long
         n_trades = end_position - start_position
-        time.sleep(1)
         self.positions[self.step] = end_position
         self.trades[self.step] = n_trades
 
