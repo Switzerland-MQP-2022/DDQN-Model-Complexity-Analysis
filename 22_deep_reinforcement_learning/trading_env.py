@@ -58,10 +58,14 @@ class DataSource:
 
     """
 
-    def __init__(self, trading_days=252, ticker='AAPL', normalize=True):
+    def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
         self.ticker = ticker
         self.trading_days = trading_days
         self.normalize = normalize
+        self.testing_days = testing_days
+        self.testData = 0
+        self.trainData = 0
+        self.training = True
         self.data = self.load_data()
         self.preprocess_data()
         self.min_values = self.data.min()
@@ -87,19 +91,6 @@ class DataSource:
         #df.columns = ['close', 'volume', 'low', 'high']
         log.info('got data for {}...'.format(self.ticker))
         return df
-
-    #def load_data(self):
-    #    log.info('loading data for {}...'.format(self.ticker))
-    #    idx = pd.IndexSlice
-    #    with pd.HDFStore('../data/assets.h5') as store:
-    #        df = (store["quandl/wiki/prices"]
-    #              .loc[idx[:, self.ticker],
-    #                   ['adj_close']]
-    #              .dropna()
-    #              .sort_index())
-    #    df.columns = ['close']
-    #    log.info('got data for {}...'.format(self.ticker))
-    #    return df
 
     def preprocess_data(self):
         """calculate returns and percentiles, then removes missing values"""
@@ -128,20 +119,37 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
         log.info(self.data.info())
 
-    def reset(self):
+    def reset(self, training=True):
         """Provides starting index for time series and resets step"""
-        high = len(self.data.index) - self.trading_days
-        self.offset = np.random.randint(low=0, high=high)
-        self.step = 0
+        self.training = training
+        if training:
+            high = len(self.trainData.index) - self.trading_days
+            self.offset = np.random.randint(low=0, high=high)
+            self.step = 0
+        else:
+            high = len(self.testData.index) - self.trading_days
+            self.offset = np.random.randint(low=0, high=high)
+            self.step = 0
+
 
     def take_step(self):
         """Returns data for current trading day and done signal"""
-        obs = self.data.iloc[self.offset + self.step].values
-        self.step += 1
-        done = self.step > self.trading_days
-        return obs, done
+        if self.training:
+            obs = self.trainData.iloc[self.offset + self.step].values
+            self.step += 1
+            done = self.step > self.trading_days
+            return obs, done
+        else:
+            obs = self.testData.iloc[self.offset + self.step].values
+            self.step += 1
+            done = self.step > self.trading_days
+            return obs, done
 
 
 class TradingSimulator:
@@ -188,7 +196,6 @@ class TradingSimulator:
 
         end_position = action - 1  # short, neutral, long
         n_trades = end_position - start_position
-        print(start_position)
         self.positions[self.step] = end_position
         self.trades[self.step] = n_trades
 
@@ -276,9 +283,9 @@ class TradingEnvironment(gym.Env):
                                                 market_return=observation[0])
         return observation, reward, done, info
 
-    def reset(self):
+    def reset(self, training=True):
         """Resets DataSource and TradingSimulator; returns first observation"""
-        self.data_source.reset()
+        self.data_source.reset(training)
         self.simulator.reset()
         return self.data_source.take_step()[0]
 
