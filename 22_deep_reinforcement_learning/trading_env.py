@@ -49,13 +49,6 @@ class DataSource:
     Provides data for each new episode.
     Stocks with longest history:
 
-    ticker  # obs
-    KO      14155
-    GE      14155
-    BA      14155
-    CAT     14155
-    DIS     14155
-
     """
 
     def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
@@ -74,39 +67,25 @@ class DataSource:
         self.offset = None
 
     def load_data(self):
-        log.info('loading data for {}...'.format(self.ticker))
-        idx = pd.IndexSlice
 
         with pd.HDFStore('../data/SPYAssets.h5') as store:
             df = (store['SAP'])
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
         df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
 
-        #with pd.HDFStore('../data/assets.h5') as store:
-        #    df = (store["quandl/wiki/prices"]
-         #         .loc[idx[:, self.ticker],
-         #              ['adj_close', 'adj_volume', 'adj_low', 'adj_high']]
-         #         .dropna()
-         #         .sort_index())
-        #df.columns = ['close', 'volume', 'low', 'high']
         log.info('got data for {}...'.format(self.ticker))
         return df
 
     def preprocess_data(self):
-        """calculate returns and percentiles, then removes missing values"""
+        """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
         #self.data['ret_2'] = self.data.close.pct_change(2)
         #self.data['ret_5'] = self.data.close.pct_change(5)
         #self.data['ret_10'] = self.data.close.pct_change(10)
         #self.data['ret_21'] = self.data.close.pct_change(21)
-        #self.data['rsi'] = talib.STOCHRSI(self.data.close)[1]
-        #self.data['macd'] = talib.MACD(self.data.close)[1]
-        #self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
 
-        #slowk, slowd = talib.STOCH(self.data.high, self.data.low, self.data.close)
-        #self.data['stoch'] = slowd - slowk
-        #self.data['ultosc'] = talib.ULTOSC(self.data.high, self.data.low, self.data.close)
+        #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
                      .dropna())
@@ -128,6 +107,7 @@ class DataSource:
     def reset(self, training=True):
         """Provides starting index for time series and resets step"""
         self.training = training
+        #if statment to decide to use training or test data
         if training:
             high = len(self.trainData.index) - self.trading_days
             self.offset = np.random.randint(low=0, high=high)
@@ -289,7 +269,3 @@ class TradingEnvironment(gym.Env):
         self.simulator.reset()
         return self.data_source.take_step()[0]
 
-    # TODO
-    def render(self, mode='human'):
-        """Not implemented"""
-        pass
