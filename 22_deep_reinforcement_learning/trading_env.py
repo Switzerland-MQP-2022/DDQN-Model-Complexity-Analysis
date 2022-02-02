@@ -72,13 +72,19 @@ class DataSource:
     def load_data(self):
         log.info('loading data for {}...'.format(self.ticker))
         idx = pd.IndexSlice
-        with pd.HDFStore('../data/assets.h5') as store:
-            df = (store["quandl/wiki/prices"]
-                  .loc[idx[:, self.ticker],
-                       ['adj_close', 'adj_volume', 'adj_low', 'adj_high']]
-                  .dropna()
-                  .sort_index())
-        df.columns = ['close', 'volume', 'low', 'high']
+
+        with pd.HDFStore('../data/SPYAssets.h5') as store:
+            df = (store['SAP'])
+        # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
+        df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
+
+        #with pd.HDFStore('../data/assets.h5') as store:
+        #    df = (store["quandl/wiki/prices"]
+         #         .loc[idx[:, self.ticker],
+         #              ['adj_close', 'adj_volume', 'adj_low', 'adj_high']]
+         #         .dropna()
+         #         .sort_index())
+        #df.columns = ['close', 'volume', 'low', 'high']
         log.info('got data for {}...'.format(self.ticker))
         return df
 
@@ -99,19 +105,19 @@ class DataSource:
         """calculate returns and percentiles, then removes missing values"""
 
         self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
-        self.data['rsi'] = talib.STOCHRSI(self.data.close)[1]
-        self.data['macd'] = talib.MACD(self.data.close)[1]
-        self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
+        #self.data['ret_2'] = self.data.close.pct_change(2)
+        #self.data['ret_5'] = self.data.close.pct_change(5)
+        #self.data['ret_10'] = self.data.close.pct_change(10)
+        #self.data['ret_21'] = self.data.close.pct_change(21)
+        #self.data['rsi'] = talib.STOCHRSI(self.data.close)[1]
+        #self.data['macd'] = talib.MACD(self.data.close)[1]
+        #self.data['atr'] = talib.ATR(self.data.high, self.data.low, self.data.close)
 
-        slowk, slowd = talib.STOCH(self.data.high, self.data.low, self.data.close)
-        self.data['stoch'] = slowd - slowk
-        self.data['ultosc'] = talib.ULTOSC(self.data.high, self.data.low, self.data.close)
+        #slowk, slowd = talib.STOCH(self.data.high, self.data.low, self.data.close)
+        #self.data['stoch'] = slowd - slowk
+        #self.data['ultosc'] = talib.ULTOSC(self.data.high, self.data.low, self.data.close)
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['high', 'low', 'close', 'volume'], axis=1)
+                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
