@@ -8,8 +8,8 @@
 /httpRequests/
 
 # other ignores
-../data/assets.h5
-../data/SPYAssets.h5
-../Model/results/
-../Model/__pycache__/
-../.idea/
+data/assets.h5
+data/SPYAssets.h5
+Model/results/
+Model/__pycache__/
+.idea/
