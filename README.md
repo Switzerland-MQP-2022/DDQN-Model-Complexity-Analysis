@@ -1,0 +1,1 @@
+This is just a stripped down version of https://github.com/PacktPublishing/Machine-Learning-for-Algorithmic-Trading-Second-Edition for me to mess around with
