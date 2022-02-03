@@ -24,8 +24,6 @@ SOFTWARE.
 """
 
 import logging
-import tempfile
-import time
 
 import gym
 import numpy as np
@@ -33,7 +31,6 @@ import pandas as pd
 from gym import spaces
 from gym.utils import seeding
 from sklearn.preprocessing import scale
-import talib
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -140,7 +137,17 @@ class TradingSimulator:
         self.trading_cost_bps = trading_cost_bps
         self.time_cost_bps = time_cost_bps
         self.steps = steps
+        self.step = 0
+        self.actions = np.zeros(self.steps)
+        self.navs = np.ones(self.steps)
+        self.market_navs = np.ones(self.steps)
+        self.strategy_returns = np.ones(self.steps)
+        self.positions = np.zeros(self.steps)
+        self.costs = np.zeros(self.steps)
+        self.trades = np.zeros(self.steps)
+        self.market_returns = np.zeros(self.steps)
 
+    def reinitialize(self):
         # change every step
         self.step = 0
         self.actions = np.zeros(self.steps)
@@ -157,7 +164,7 @@ class TradingSimulator:
         self.actions.fill(0)
         self.navs.fill(1)
         self.market_navs.fill(1)
-        self.strategy_returns.fill(0)
+        self.strategy_returns.fill(1)
         self.positions.fill(0)
         self.costs.fill(0)
         self.trades.fill(0)
@@ -200,7 +207,7 @@ class TradingSimulator:
     def result(self):
         """returns current state as pd.DataFrame """
         return pd.DataFrame({'action'         : self.actions,  # current action
-                             'nav'            : self.navs,  # starting Net Asset Value (NAV)
+                             'nav'            : self.navs,  # Net Asset Values (NAV)
                              'market_nav'     : self.market_navs,
                              'market_return'  : self.market_returns,
                              'strategy_return': self.strategy_returns,
