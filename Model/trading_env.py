@@ -49,6 +49,7 @@ class DataSource:
     """
 
     def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
+        self.filePath = "../data/SPYAssets.h5"
         self.ticker = ticker
         self.trading_days = trading_days
         self.normalize = normalize
@@ -62,7 +63,6 @@ class DataSource:
         self.max_values = self.data.max()
         self.step = 0
         self.offset = None
-        self.filePath = "../data/SPYAssets.h5"
 
     def load_data(self):
 
