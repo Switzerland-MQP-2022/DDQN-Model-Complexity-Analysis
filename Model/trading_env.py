@@ -49,7 +49,6 @@ class DataSource:
     """
 
     def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
-        self.filePath = "../data/SPYAssets.h5"
         self.ticker = ticker
         self.trading_days = trading_days
         self.normalize = normalize
@@ -65,8 +64,15 @@ class DataSource:
         self.offset = None
 
     def load_data(self):
+        filepath = ""
+        try:
+            import google.colab
+            filepath = "SPYAssets.h5"
+        except:
+            filepath = "../data/SPYAssets.h5"
 
-        with pd.HDFStore(self.filePath) as store:
+
+        with pd.HDFStore(filepath) as store:
             df = (store['SAP'])
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
         df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
