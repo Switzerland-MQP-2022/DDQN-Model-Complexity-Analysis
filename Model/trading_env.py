@@ -62,10 +62,11 @@ class DataSource:
         self.max_values = self.data.max()
         self.step = 0
         self.offset = None
+        self.filePath = "../data/SPYAssets.h5"
 
     def load_data(self):
 
-        with pd.HDFStore('../data/SPYAssets.h5') as store:
+        with pd.HDFStore(self.filePath) as store:
             df = (store['SAP'])
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
         df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
