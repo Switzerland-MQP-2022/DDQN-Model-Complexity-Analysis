@@ -48,22 +48,23 @@ class DataSource:
 
     """
 
-    def __init__(self, trading_days=252, ticker='AAPL', normalize=True, testing_days=504):
-        self.ticker = ticker
+    def __init__(self, trading_days=252, model=0, normalize=True, testing_days=504):
         self.trading_days = trading_days
         self.normalize = normalize
         self.testing_days = testing_days
         self.testData = 0
         self.trainData = 0
         self.training = True
+        self.data = []
         self.data = self.load_data()
-        self.preprocess_data()
+        self.preprocess_data(model=model)
         self.min_values = self.data.min()
         self.max_values = self.data.max()
         self.step = 0
         self.offset = None
 
     def load_data(self):
+        # check if we are in google colab and update the file path accordingly
         filepath = ""
         try:
             import google.colab
@@ -77,17 +78,74 @@ class DataSource:
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
         df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
 
-        log.info('got data for {}...'.format(self.ticker))
         return df
 
-    def preprocess_data(self):
+    def preprocess_data(self, model=0):
+
+        # There are no switch statements in python so... giant if else it is
+        if model == 0:
+            self.preprocess_model_zero()
+        elif model == 1:
+            self.preprocess_model_one()
+        elif model == 10:
+            self.preprocess_model_ten()
+        # TODO add more models, just add them to the elif statements and add a function
+
+    def preprocess_model_zero(self):
+        """Simplest model with only 1 day returns"""
+
+        self.data['returns'] = self.data.close.pct_change()
+
+        #remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .dropna())
+
+
+        self.data = self.data.loc[:, ['returns']]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_one(self):
+        # TODO make the 1st model
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
-        #self.data['ret_2'] = self.data.close.pct_change(2)
-        #self.data['ret_5'] = self.data.close.pct_change(5)
-        #self.data['ret_10'] = self.data.close.pct_change(10)
-        #self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
+
+        #remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .dropna())
+
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_ten(self):
+        """calculate returns"""
+
+        self.data['returns'] = self.data.close.pct_change()
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -250,13 +308,11 @@ class TradingEnvironment(gym.Env):
                  trading_days=252,
                  trading_cost_bps=1e-3,
                  time_cost_bps=1e-4,
-                 ticker='AAPL'):
+                 model=0):
         self.trading_days = trading_days
         self.trading_cost_bps = trading_cost_bps
-        self.ticker = ticker
         self.time_cost_bps = time_cost_bps
-        self.data_source = DataSource(trading_days=self.trading_days,
-                                      ticker=ticker)
+        self.data_source = DataSource(trading_days=self.trading_days, model=model)
         self.simulator = TradingSimulator(steps=self.trading_days,
                                           trading_cost_bps=self.trading_cost_bps,
                                           time_cost_bps=self.time_cost_bps)
