@@ -104,7 +104,11 @@ class DataSource:
             self.preprocess_model_zero()
         elif model == 1:
             self.preprocess_model_one()
+        elif model == 4:
+            self.load_dataNew()
+            self.preprocess_data_Four()
         elif model == 5:
+            self.load_dataNew()
             self.preprocess_data_five()
         elif model == 10:
             self.preprocess_model_ten()
@@ -180,7 +184,7 @@ class DataSource:
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(['Date', 'CloseNSDQO', 'CloseDIA'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
@@ -227,7 +231,7 @@ class DataSource:
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD'], axis=1)
+                     .drop(['Date', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
