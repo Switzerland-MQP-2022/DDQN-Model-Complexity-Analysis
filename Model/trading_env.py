@@ -104,9 +104,15 @@ class DataSource:
             self.preprocess_model_zero()
         elif model == 1:
             self.preprocess_model_one()
+        elif model == 2:
+            self.load_dataNew()
+            self.preprocess_data_two()
+        elif model == 3:
+            self.load_dataNew()
+            self.preprocess_data_three()
         elif model == 4:
             self.load_dataNew()
-            self.preprocess_data_Four()
+            self.preprocess_data_four()
         elif model == 5:
             self.load_dataNew()
             self.preprocess_data_five()
@@ -133,14 +139,10 @@ class DataSource:
         log.info(self.data.info())
 
     def preprocess_model_one(self):
-        # TODO make the 1st model
+        # TODO add actionVVVVV
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -161,7 +163,68 @@ class DataSource:
 
         log.info(self.data.info())
 
-    def preprocess_model_Four(self):
+    def preprocess_model_two(self):
+        # remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .dropna())
+        """calculate returns"""
+
+        self.data['returns'] = self.data.close.pct_change()
+
+        # remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date'], axis=1)
+                     .dropna())
+
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data) - self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_three(self):
+        # remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .dropna())
+
+        """calculate returns"""
+        self.data['returns'] = self.data.close.pct_change()
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
+
+
+        #remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date'], axis=1)
+                     .dropna())
+
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD'], axis=1)
