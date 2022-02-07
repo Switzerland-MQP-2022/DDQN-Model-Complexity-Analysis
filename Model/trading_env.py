@@ -80,6 +80,23 @@ class DataSource:
 
         return df
 
+    def load_dataNew(self):
+        # check if we are in google colab and update the file path accordingly
+        filepath = ""
+        try:
+            import google.colab
+            filepath = "IndexAssets.h5"
+        except:
+            filepath = "../data/IndexAssets.h5"
+
+
+        with pd.HDFStore(filepath) as store:
+            df = (store['SAP'])
+        # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
+        df.columns = ['Date', 'close', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD']
+
+        return df
+
     def preprocess_data(self, model=0):
 
         # There are no switch statements in python so... giant if else it is
@@ -87,6 +104,8 @@ class DataSource:
             self.preprocess_model_zero()
         elif model == 1:
             self.preprocess_model_one()
+        elif model == 5:
+            self.preprocess_data_five()
         elif model == 10:
             self.preprocess_model_ten()
         # TODO add more models, just add them to the elif statements and add a function
@@ -122,6 +141,93 @@ class DataSource:
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .dropna())
+
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_Four(self):
+        # remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['CloseUSO', 'CloseGLD'], axis=1)
+                     .dropna())
+        """calculate returns"""
+
+        self.data['returns'] = self.data.close.pct_change()
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
+
+        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
+        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
+        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+
+        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
+        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
+        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+
+        #remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date', 'close', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .dropna())
+
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
+
+        self.testData = self.data.tail(self.testing_days)
+        self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        log.info(self.data.info())
+
+    def preprocess_model_five(self):
+        #remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan).dropna())
+
+        """calculate returns"""
+
+        self.data['returns'] = self.data.close.pct_change()
+        self.data['ret_2'] = self.data.close.pct_change(2)
+        self.data['ret_5'] = self.data.close.pct_change(5)
+        self.data['ret_10'] = self.data.close.pct_change(10)
+        self.data['ret_21'] = self.data.close.pct_change(21)
+
+        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
+        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
+        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+
+        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
+        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
+        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+
+        self.data['USOret_1'] = self.data.CloseUSO.pct_change()
+        self.data['USOret_5'] = self.data.CloseUSO.pct_change(5)
+        self.data['USOret_21'] = self.data.CloseUSO.pct_change(21)
+
+        self.data['GLDret_1'] = self.data.CloseGLD.pct_change()
+        self.data['GLDret_5'] = self.data.CloseGLD.pct_change(5)
+        self.data['GLDret_21'] = self.data.CloseGLD.pct_change(21)
+
+        #remove unessisary data
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['Date', 'close', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
