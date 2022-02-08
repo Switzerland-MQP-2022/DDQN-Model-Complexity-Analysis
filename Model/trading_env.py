@@ -68,23 +68,6 @@ class DataSource:
         filepath = ""
         try:
             import google.colab
-            filepath = "SPYAssets.h5"
-        except:
-            filepath = "../data/SPYAssets.h5"
-
-
-        with pd.HDFStore(filepath) as store:
-            df = (store['SAP'])
-        # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
-        df.columns = ['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover']
-
-        return df
-
-    def load_dataNew(self):
-        # check if we are in google colab and update the file path accordingly
-        filepath = ""
-        try:
-            import google.colab
             filepath = "IndexAssets.h5"
         except:
             filepath = "../data/IndexAssets.h5"
@@ -121,13 +104,17 @@ class DataSource:
         # TODO add more models, just add them to the elif statements and add a function
 
     def preprocess_model_zero(self):
+        # remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .dropna())
         """Simplest model with only 1 day returns"""
 
         self.data['returns'] = self.data.close.pct_change()
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .drop(['Date', 'close'], axis=1)
                      .dropna())
 
 
@@ -139,6 +126,10 @@ class DataSource:
         log.info(self.data.info())
 
     def preprocess_model_one(self):
+        # remove nan
+        self.data = (self.data.replace((np.inf, -np.inf), np.nan)
+                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .dropna())
         # TODO add actionVVVVV
         """calculate returns"""
 
@@ -146,7 +137,7 @@ class DataSource:
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close', 'Net', 'Chg', 'Open', 'low', 'high', 'volume', 'Turnover'], axis=1)
+                     .drop(['Date', 'close'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
