@@ -88,16 +88,12 @@ class DataSource:
         elif model == 1:
             self.preprocess_model_one()
         elif model == 2:
-            self.load_dataNew()
             self.preprocess_data_two()
         elif model == 3:
-            self.load_dataNew()
             self.preprocess_data_three()
         elif model == 4:
-            self.load_dataNew()
             self.preprocess_data_four()
         elif model == 5:
-            self.load_dataNew()
             self.preprocess_data_five()
         elif model == 10:
             self.preprocess_model_ten()
