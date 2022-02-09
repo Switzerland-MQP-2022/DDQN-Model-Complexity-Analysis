@@ -103,16 +103,16 @@ class DataSource:
             self.preprocess_model_ten()
         # TODO add more models, just add them to the elif statements and add a function
 
+    # State 1: 1 Day Returns
     def preprocess_model_zero(self):
-        # remove nan
+        # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
                      .dropna())
-        """Simplest model with only 1 day returns"""
 
         self.data['returns'] = self.data.close.pct_change()
 
-        #remove unessisary data
+        # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close'], axis=1)
                      .dropna())
@@ -125,17 +125,18 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 2: 1 Day Returns, Previous Action of Agent
     def preprocess_model_one(self):
-        # remove nan
+        # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
                      .dropna())
-        # TODO add actionVVVVV
+        # TODO Add Previous action of agent
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
 
-        #remove unessisary data
+        # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close'], axis=1)
                      .dropna())
@@ -154,6 +155,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 3: 1 Day Returns, Previous Action of Agent, Previous Price
     def preprocess_model_two(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -182,6 +184,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 4: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price
     def preprocess_model_three(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -215,6 +218,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 5: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
     def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -255,6 +259,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 6: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
     def preprocess_model_five(self):
         #remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan).dropna())
