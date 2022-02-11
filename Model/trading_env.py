@@ -422,8 +422,8 @@ class TradingSimulator:
         if self.step != 0:
             self.navs[self.step] = start_nav * (1 + self.strategy_returns[self.step])
             self.market_navs[self.step] = start_market_nav * (1 + self.market_returns[self.step])
-            if self.navs[self.step] > 2 or self.navs[self.step] > 2:
-                end = True
+            #if self.navs[self.step] > 2 or self.navs[self.step] < .01:
+            #    end = True
 
         info = {'reward': reward,
                 'nav'   : self.navs[self.step],
