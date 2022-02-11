@@ -418,16 +418,20 @@ class TradingSimulator:
         reward = cur_position * market_return - self.costs[self.step]
         self.strategy_returns[self.step] = reward
 
+        end = False
         if self.step != 0:
             self.navs[self.step] = start_nav * (1 + self.strategy_returns[self.step])
             self.market_navs[self.step] = start_market_nav * (1 + self.market_returns[self.step])
+            if self.navs[self.step] > 2 or self.navs[self.step] > 2:
+                end = True
 
         info = {'reward': reward,
                 'nav'   : self.navs[self.step],
                 'costs' : self.costs[self.step]}
 
         self.step += 1
-        return reward, info
+
+        return reward, info, end
 
     def result(self):
         """returns current state as pd.DataFrame """
@@ -489,9 +493,9 @@ class TradingEnvironment(gym.Env):
         """Returns state observation, reward, done and info"""
         assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action))
         observation, done = self.data_source.take_step()
-        reward, info = self.simulator.take_step(action=action,
+        reward, info, end = self.simulator.take_step(action=action,
                                                 market_return=observation[0])
-        return observation, reward, done, info
+        return observation, reward, done or end, info
 
     def reset(self, training=True):
         """Resets DataSource and TradingSimulator; returns first observation"""
