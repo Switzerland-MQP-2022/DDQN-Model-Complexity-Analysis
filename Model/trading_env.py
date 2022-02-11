@@ -394,28 +394,28 @@ class TradingSimulator:
         self.costs.fill(0)
         self.trades.fill(0)
         self.market_returns.fill(0)
-
+#                       B MT     TW
     def take_step(self, action, market_return):
         """ Calculates NAVs, trading costs and reward
             based on an action and latest market return
             and returns the reward and a summary of the day's activity. """
 
-        start_position = self.positions[max(0, self.step - 1)]
+        prev_position = self.positions[max(0, self.step - 1)]
         start_nav = self.navs[max(0, self.step - 1)]
         start_market_nav = self.market_navs[max(0, self.step - 1)]
         self.market_returns[self.step] = market_return
         self.actions[self.step] = action
 
-        end_position = action - 1  # short, neutral, long
-        n_trades = end_position - start_position
-        self.positions[self.step] = end_position
+        cur_position = action - 1  # short, neutral, long
+        n_trades = cur_position - prev_position
+        self.positions[self.step] = cur_position
         self.trades[self.step] = n_trades
 
         # roughly value based since starting NAV = 1
         trade_costs = abs(n_trades) * self.trading_cost_bps
         time_cost = 0 if n_trades else self.time_cost_bps
         self.costs[self.step] = trade_costs + time_cost
-        reward = start_position * market_return - self.costs[self.step]
+        reward = cur_position * market_return - self.costs[self.step]
         self.strategy_returns[self.step] = reward
 
         if self.step != 0:
