@@ -349,15 +349,19 @@ class DataSource:
             self.step = 0
 
 
-    def take_step(self):
+    def take_step(self, action):
         """Returns data for current trading day and done signal"""
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
+            # Add the action to the observation
+            obs = np.append(obs, action)
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
         else:
             obs = self.testData.iloc[self.offset + self.step].values
+            # Add the action to the observation
+            obs = np.append(obs, action)
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
@@ -392,7 +396,7 @@ class TradingSimulator:
         self.costs = np.zeros(self.steps)
         self.trades = np.zeros(self.steps)
         self.market_returns = np.zeros(self.steps)
-
+    
     def reset(self):
         self.step = 0
         self.actions.fill(0)
@@ -486,8 +490,8 @@ class TradingEnvironment(gym.Env):
                                           trading_cost_bps=self.trading_cost_bps,
                                           time_cost_bps=self.time_cost_bps)
         self.action_space = spaces.Discrete(3)
-        self.observation_space = spaces.Box(self.data_source.min_values,
-                                            self.data_source.max_values)
+        # self.observation_space = spaces.Box(self.data_source.min_values,
+        #                                     self.data_source.max_values)
         self.reset()
 
     def seed(self, seed=None):
@@ -497,7 +501,7 @@ class TradingEnvironment(gym.Env):
     def step(self, action):
         """Returns state observation, reward, done and info"""
         assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action))
-        observation, done = self.data_source.take_step()
+        observation, done = self.data_source.take_step(action=action)
         reward, info = self.simulator.take_step(action=action,
                                                 market_return=observation[0])
         return observation, reward, done, info
@@ -506,5 +510,5 @@ class TradingEnvironment(gym.Env):
         """Resets DataSource and TradingSimulator; returns first observation"""
         self.data_source.reset(training)
         self.simulator.reset()
-        return self.data_source.take_step()[0]
+        return self.data_source.take_step(action=1)[0]
 
