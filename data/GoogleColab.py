@@ -2,6 +2,7 @@
 
 # Overview
 
+
 This notebook documents the analysis of a variety of reinforcement learning models dedicated to trading of SPDR S&P 500 ETF Trust (SPY) stock.  These models all use the same algorithms and structure, a Double Deep Q Learning model, but differ in their state space, or environment.
 
 The goal of this project is to analyze how increasing the
@@ -12,6 +13,7 @@ This notebook stores each of the state spaces we experimented with, and allows a
 #%% md
 
 # Introduction
+
 
 Advances in machine learning (ML) and artificial intelligence (AI) have enabled us to enhance our lives and tackle a variety of
 complex problems. The financial market is a prime example of a field where researchers are employing these techniques. Since the financial market is very dynamic and ever fluctuating, it presents a unique challenges to consider when developing these systems, but also allows the power of machine learning and AI to shine. Before the development of AI, it was the job of investors and traders to use market data to make optimal decisions that maximize and reduce risk within the context of a trading system. However, due to market complexities, it can be challenging for agents to consider all the relevant information to take an informed position. This is where reinforcement learning (RL), an area of ML, comes into play. Through repeated interaction with a market environment, an RL agent can learn optimal trading strategies by taking certain actions, receiving rewards based on these, and adapting future actions based on previous experience.
@@ -55,7 +57,6 @@ For the equity indices, we have the prices of SPY (the index we are predicting),
 #%% md
 
 ### Imports & Settings
-
 #%%
 
 import warnings
@@ -94,9 +95,11 @@ with pd.HDFStore(DATA_STORE) as store:
 
 #%% md
 
+
 ### Connect and Store to Google Drive
 
 Allow this notebook to access your Google Drive when prompted, as that is where the data will be stored
+
 
 #%%
 
@@ -133,6 +136,7 @@ drive.mount('/content/gdrive')
 #%% md
 
 # Methodology
+
 Since we are comparing the effectiveness of data with different dimensionalities we naturally have to train multiple models. The state variables for each model is shown in the table below.
 
 | Model 1 | Model 2 | Model 3 | Model 4 | Model 5 | Model 6 |
@@ -150,6 +154,14 @@ This notebook allows you to specify which state space you want to use, as traini
 
 #Which model to run(0 - 6, 0 being the simplest, 6 being the most complex)
 model = 0
+whenSave = 10
+stopAfterOne = True
+printStep = True
+trading_cost_bps = 0
+time_cost_bps = 0
+batch_size = 256
+max_episodes = 20
+epsilon_decay_steps = max_episodes/2
 
 
 #Random setup stuff
@@ -176,6 +188,7 @@ def format_time(t):
     return '{:02.0f}:{:02.0f}:{:02.0f}'.format(h, m, s)
 
 #%% md
+
 
 ## Simulation Environment
 
@@ -216,7 +229,9 @@ to 1), the percent change of NAV will directly correlate to the 1-Day Return. An
 
 
 
+
 #%% md
+
 
 ### Create and Initialize Environment
 
@@ -224,8 +239,9 @@ to 1), the percent change of NAV will directly correlate to the 1-Day Return. An
 
 #Simulation variables
 trading_days = 252
-trading_cost_bps = 1e-3
-time_cost_bps = 1e-4
+#trading_cost_bps = 1e-3
+#time_cost_bps = 1e-4
+
 
 register(
     id='trading-v0',
@@ -249,9 +265,10 @@ trading_environment.env.simulator.reinitialize()
 trading_environment.seed(42)
 
 # Get Environment Params
-state_dim = trading_environment.observation_space.shape[0]
+state_dim = len(trading_environment.reset())
 num_actions = trading_environment.action_space.n
 max_episode_steps = trading_environment.spec.max_episode_steps
+
 
 
 
@@ -395,16 +412,17 @@ architecture = (256, 256)  # units per layer
 learning_rate = 0.0001  # learning rate
 l2_reg = 1e-6  # L2 regularization
 
-# Experience Replay
+### Experience Replay
 
 replay_capacity = int(1e6)
-batch_size = 4096
+#batch_size = 4096
 
-# Epsilon-Greedy Policy
+### epsilon-greedy Policy
 
 epsilon_start = 1.0 # starting point for epsilon
 epsilon_end = .01 # ending point for epsilon
-epsilon_decay_steps = 250 # the number of steps to get from start to end
+#epsilon_decay_steps = 250 # the number of steps to get from start to end
+
 epsilon_exponential_decay = .99 # after 250 step(epsilon_decay_steps) epsilon = epsilon*epsilon_exponential_decay
 
 #%% md
@@ -433,13 +451,16 @@ ddqn = DDQNAgent(state_dim=state_dim,
 
 ddqn.online_network.summary()
 
-# Set experiment parameters
-total_steps = 0
-max_episodes = 1000
+### Set Experiment parameters
 
-# Initialize experiment variables
-episode_time, navs, market_navs, diffs, episode_eps = [], [], [], [], []
-test_navs, test_market_navs, test_diffs = [], [], []
+total_steps = 0
+#max_episodes = 1000
+
+### Initialize Experiment variables
+
+episode_time, navs, market_navs, diffs, episode_eps, holds, shorts, buys = [], [], [], [], [], [], [], []
+test_navs, test_market_navs, test_diffs, test_holds, test_shorts, test_buys = [], [], [], [], [], []
+
 
 #%% md
 
@@ -447,7 +468,9 @@ test_navs, test_market_navs, test_diffs = [], [], []
 
 #%%
 
+
 # Prints the results from the training and testing runs
+
 def track_results(episode, nav_ma_100, nav_ma_10,
                   market_nav_100, market_nav_10,
                   win_ratio, total, epsilon, pretext="Training Results:"):
@@ -462,19 +485,38 @@ def track_results(episode, nav_ma_100, nav_ma_10,
                           market_nav_100-1, market_nav_10-1,
                           win_ratio, epsilon))
 
-# Runs a year long simulation ("episode") on the testing data
+#Runs a year long simulation on the testing data
 def test_data_simulation():
-    # reset the environment
+    #reset the environment
     testthis_state = trading_environment.reset(training=False)
+    num_holds = 0
+    num_buys = 0
+    num_shorts = 0
 
-    # loop for a year
+    #loop for a year
+
     for test_episode_step in range(max_episode_steps):
         testaction = ddqn.epsilon_greedy_policy(testthis_state.reshape(-1, state_dim))
         testnext_state, testreward, testdone, _ = trading_environment.step(testaction)
 
+        if testaction == 0:
+            num_shorts += 1
+        elif testaction == 1:
+            num_holds += 1
+        else:
+            num_buys += 1
+
+
         if testdone:
             break
         testthis_state = testnext_state
+
+
+
+
+    test_holds.append(num_holds)
+    test_shorts.append(num_shorts)
+    test_buys.append(num_buys)
 
     # get DataFrame with sequence of actions, returns, and NAV values
     test_result = trading_environment.env.simulator.result()
@@ -483,21 +525,21 @@ def test_data_simulation():
     test_final = test_result.iloc[-1]
 
 
-    # apply return (net of cost) of last action to last starting NAV
-    test_nav = test_final.nav * (1 + test_final.strategy_return)
+    # get nav
+    test_nav = test_final.nav
     test_navs.append(test_nav)
 
-    # market NAV
+    # market nav
     test_market_nav = test_final.market_nav
     test_market_navs.append(test_market_nav)
 
-    # track difference between agent and market NAV results
+    # track difference between agent an market NAV results
     test_diff = test_nav - test_market_nav
     test_diffs.append(test_diff)
 
-    # store the results
+    #Store the results
     track_results(episode,
-                  # show moving average results for 100 (10) periods
+                  # show mov. average results for 100 (10) periods
                   np.mean(test_navs[-100:]),
                   np.mean(test_navs[-10:]),
                   np.mean(test_market_navs[-100:]),
@@ -506,7 +548,6 @@ def test_data_simulation():
                   np.sum([s > 0 for s in test_diffs[-100:]])/min(len(test_diffs), 100),
                   time() - start, -1, pretext="Testing Results:")
 
-#%%
 
 def saveData():
     print(len(diffs))
@@ -518,15 +559,23 @@ def saveData():
                             'Episode': list(range(1, episode+1)),
                             'TrainAgent': navs,
                             'TrainMarket': market_navs,
-                            'TrainDifference': diffs}).set_index('Episode')
+                            'TrainDifference': diffs,
+                            'Holds': holds,
+                            'Buys': buys,
+                            'Shorts': shorts}).set_index('Episode')
 
     results['Strategy Wins (%)'] = (results.TrainDifference > 0).rolling(100).sum()
+
 
     test_results = pd.DataFrame({'NumStateVars': numStateVars,
                             'EpisodeDiv10': list(range(1, len(test_navs)+1)),
                             'TestAgent': test_navs,
                             'TestMarket': test_market_navs,
-                            'TestDifference': test_diffs}).set_index('EpisodeDiv10')
+                            'TestDifference': test_diffs,
+                            'Holds': test_holds,
+                            'Buys': test_buys,
+                            'Shorts': test_shorts}).set_index('EpisodeDiv10')
+
 
     test_results['Strategy Wins (%)'] = (test_results.TestDifference > 0).rolling(100).sum()
 
@@ -534,6 +583,7 @@ def saveData():
     currentTime = datetime.now()
     training_file_name = currentTime.strftime("%Y-%m-%d-%H%M-") + 'TrainResults.csv'
     testing_file_name = currentTime.strftime("%Y-%m-%d-%H%M-") + 'TestResults.csv'
+
 
     # store the results in a csv file
     results.to_csv(results_path + training_file_name)
@@ -548,10 +598,34 @@ def saveData():
 
 start = time()
 results = []
+print("-----------------------------------------------")
+print("model: ", model)
+print("whenSave: ", whenSave)
+print("trading_cost_bps: ", trading_cost_bps)
+print("time_cost_bps: ", time_cost_bps)
+print("batch_size: ", batch_size)
+print("max_episodes: ", max_episodes)
+print("epsilon_decay_steps: ", epsilon_decay_steps)
+print("-----------------------------------------------")
 for episode in range(1, max_episodes + 1):
     this_state = trading_environment.reset()
+    numBuy = 0
+    numShort = 0
+    numHold = 0
+    print("Episode: ", episode)
     for episode_step in range(max_episode_steps):
         action = ddqn.epsilon_greedy_policy(this_state.reshape(-1, state_dim))
+
+        if action == 0:
+            numShort += 1
+        elif action == 1:
+            numHold += 1
+        else:
+            numBuy += 1
+
+
+
+
         next_state, reward, done, _ = trading_environment.step(action)
 
         ddqn.memorize_transition(this_state,
@@ -559,11 +633,22 @@ for episode in range(1, max_episodes + 1):
                                  reward,
                                  next_state,
                                  0.0 if done else 1.0)
+        if printStep:
+            print("Step: ", episode_step)
+            print("ts: ", this_state)
+            print("ac: ", action)
+            print("re: ", reward)
+            print("ns: ", next_state)
+
         if ddqn.train:
             ddqn.experience_replay()
         if done:
             break
         this_state = next_state
+
+    if stopAfterOne:
+        break
+
 
     # get DataFrame with sequence of actions, returns and NAV values
     result = trading_environment.env.simulator.result()
@@ -571,21 +656,26 @@ for episode in range(1, max_episodes + 1):
     # get results of last step
     final = result.iloc[-1]
 
-    # apply return (net of cost) of last action to last starting NAV
-    nav = final.nav * (1 + final.strategy_return)
+    # get NAV
+    nav = final.nav
     navs.append(nav)
 
     # market NAV
     market_nav = final.market_nav
     market_navs.append(market_nav)
 
-    # track difference between agent and market NAV results
+    #num holds buys and sells
+    holds.append(numHold)
+    buys.append(numBuy)
+    shorts.append(numShort)
+
+    # track difference between agent an market NAV results
     diff = nav - market_nav
     diffs.append(diff)
-
     if episode % 10 == 0:
         track_results(episode,
-                      # show moving average results for 100 (10) periods
+                      # show mov. average results for 100 (10) periods
+
                       np.mean(navs[-100:]),
                       np.mean(navs[-10:]),
                       np.mean(market_navs[-100:]),
@@ -594,26 +684,27 @@ for episode in range(1, max_episodes + 1):
                       np.sum([s > 0 for s in diffs[-100:]])/min(len(diffs), 100),
                       time() - start, ddqn.epsilon)
         test_data_simulation()
-
-    if episode % 50 == 0:
+    if episode % whenSave == 0:
         saveData()
 
     if len(diffs) > 25 and all([r > 0 for r in diffs[-25:]]):
         print(result.tail())
         break
 
-print("final")
-track_results(episode,
-              # show mov. average results for 100 (10) periods
-              np.mean(navs[-100:]),
-              np.mean(navs[-10:]),
-              np.mean(market_navs[-100:]),
-              np.mean(market_navs[-10:]),
-              # share of agent wins, defined as higher ending NAV
-              np.sum([s > 0 for s in diffs[-100:]])/min(len(diffs), 100),
-              time() - start, ddqn.epsilon)
-test_data_simulation()
-trading_environment.close()
+if not stopAfterOne:
+    print("final")
+    track_results(episode,
+                  # show mov. average results for 100 (10) periods
+                  np.mean(navs[-100:]),
+                  np.mean(navs[-10:]),
+                  np.mean(market_navs[-100:]),
+                  np.mean(market_navs[-10:]),
+                  # share of agent wins, defined as higher ending nav
+                  np.sum([s > 0 for s in diffs[-100:]])/min(len(diffs), 100),
+                  time() - start, ddqn.epsilon)
+    test_data_simulation()
+    trading_environment.close()
+
 
 #%% md
 
@@ -628,6 +719,7 @@ saveData()
 ## Evaluate Results
 
 #%%
+
 
 # plot density histogram
 

@@ -99,16 +99,16 @@ class DataSource:
             self.preprocess_model_ten()
         # TODO add more models, just add them to the elif statements and add a function
 
+    # State 1: 1 Day Returns
     def preprocess_model_zero(self):
-        # remove nan
+        # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
                      .dropna())
-        """Simplest model with only 1 day returns"""
 
         self.data['returns'] = self.data.close.pct_change()
 
-        #remove unessisary data
+        # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close'], axis=1)
                      .dropna())
@@ -121,17 +121,18 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 2: 1 Day Returns, Previous Action of Agent
     def preprocess_model_one(self):
-        # remove nan
+        # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
                      .dropna())
-        # TODO add actionVVVVV
+        # TODO Add Previous action of agent
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
 
-        #remove unessisary data
+        # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['Date', 'close'], axis=1)
                      .dropna())
@@ -150,6 +151,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 3: 1 Day Returns, Previous Action of Agent, Previous Price
     def preprocess_model_two(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -178,6 +180,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 4: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price
     def preprocess_model_three(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -211,6 +214,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 5: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
     def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -251,6 +255,7 @@ class DataSource:
 
         log.info(self.data.info())
 
+    # State 6: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
     def preprocess_model_five(self):
         #remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan).dropna())
@@ -340,15 +345,19 @@ class DataSource:
             self.step = 0
 
 
-    def take_step(self):
+    def take_step(self, action=1):
         """Returns data for current trading day and done signal"""
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
+            # Add the action to the observation
+            obs = np.append(obs, action)
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
         else:
             obs = self.testData.iloc[self.offset + self.step].values
+            # Add the action to the observation
+            obs = np.append(obs, action)
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
@@ -383,7 +392,7 @@ class TradingSimulator:
         self.costs = np.zeros(self.steps)
         self.trades = np.zeros(self.steps)
         self.market_returns = np.zeros(self.steps)
-
+    
     def reset(self):
         self.step = 0
         self.actions.fill(0)
@@ -394,40 +403,44 @@ class TradingSimulator:
         self.costs.fill(0)
         self.trades.fill(0)
         self.market_returns.fill(0)
-
+#                       B MT     TW
     def take_step(self, action, market_return):
         """ Calculates NAVs, trading costs and reward
             based on an action and latest market return
             and returns the reward and a summary of the day's activity. """
 
-        start_position = self.positions[max(0, self.step - 1)]
+        prev_position = self.positions[max(0, self.step - 1)]
         start_nav = self.navs[max(0, self.step - 1)]
         start_market_nav = self.market_navs[max(0, self.step - 1)]
         self.market_returns[self.step] = market_return
         self.actions[self.step] = action
 
-        end_position = action - 1  # short, neutral, long
-        n_trades = end_position - start_position
-        self.positions[self.step] = end_position
+        cur_position = action - 1  # short, neutral, long
+        n_trades = cur_position - prev_position
+        self.positions[self.step] = cur_position
         self.trades[self.step] = n_trades
 
         # roughly value based since starting NAV = 1
         trade_costs = abs(n_trades) * self.trading_cost_bps
         time_cost = 0 if n_trades else self.time_cost_bps
         self.costs[self.step] = trade_costs + time_cost
-        reward = start_position * market_return - self.costs[self.step]
+        reward = cur_position * market_return - self.costs[self.step]
         self.strategy_returns[self.step] = reward
 
+        end = False
         if self.step != 0:
             self.navs[self.step] = start_nav * (1 + self.strategy_returns[self.step])
             self.market_navs[self.step] = start_market_nav * (1 + self.market_returns[self.step])
+            #if self.navs[self.step] > 2 or self.navs[self.step] < .01:
+            #    end = True
 
         info = {'reward': reward,
                 'nav'   : self.navs[self.step],
                 'costs' : self.costs[self.step]}
 
         self.step += 1
-        return reward, info
+
+        return reward, info, end
 
     def result(self):
         """returns current state as pd.DataFrame """
@@ -477,8 +490,8 @@ class TradingEnvironment(gym.Env):
                                           trading_cost_bps=self.trading_cost_bps,
                                           time_cost_bps=self.time_cost_bps)
         self.action_space = spaces.Discrete(3)
-        self.observation_space = spaces.Box(self.data_source.min_values,
-                                            self.data_source.max_values)
+        # self.observation_space = spaces.Box(self.data_source.min_values,
+        #                                     self.data_source.max_values)
         self.reset()
 
     def seed(self, seed=None):
@@ -488,14 +501,14 @@ class TradingEnvironment(gym.Env):
     def step(self, action):
         """Returns state observation, reward, done and info"""
         assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action))
-        observation, done = self.data_source.take_step()
-        reward, info = self.simulator.take_step(action=action,
+        observation, done = self.data_source.take_step(action=action)
+        reward, info, end = self.simulator.take_step(action=action,
                                                 market_return=observation[0])
-        return observation, reward, done, info
+        return observation, reward, done or end, info
 
     def reset(self, training=True):
         """Resets DataSource and TradingSimulator; returns first observation"""
         self.data_source.reset(training)
         self.simulator.reset()
-        return self.data_source.take_step()[0]
+        return self.data_source.take_step(action=1)[0]
 
