@@ -349,7 +349,7 @@ class DataSource:
             self.step = 0
 
 
-    def take_step(self, action):
+    def take_step(self, action=1):
         """Returns data for current trading day and done signal"""
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
