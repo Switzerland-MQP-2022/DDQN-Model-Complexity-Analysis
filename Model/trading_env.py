@@ -88,16 +88,12 @@ class DataSource:
         elif model == 1:
             self.preprocess_model_one()
         elif model == 2:
-            self.load_dataNew()
             self.preprocess_data_two()
         elif model == 3:
-            self.load_dataNew()
             self.preprocess_data_three()
         elif model == 4:
-            self.load_dataNew()
             self.preprocess_data_four()
         elif model == 5:
-            self.load_dataNew()
             self.preprocess_data_five()
         elif model == 10:
             self.preprocess_model_ten()
@@ -407,40 +403,44 @@ class TradingSimulator:
         self.costs.fill(0)
         self.trades.fill(0)
         self.market_returns.fill(0)
-
+#                       B MT     TW
     def take_step(self, action, market_return):
         """ Calculates NAVs, trading costs and reward
             based on an action and latest market return
             and returns the reward and a summary of the day's activity. """
 
-        start_position = self.positions[max(0, self.step - 1)]
+        prev_position = self.positions[max(0, self.step - 1)]
         start_nav = self.navs[max(0, self.step - 1)]
         start_market_nav = self.market_navs[max(0, self.step - 1)]
         self.market_returns[self.step] = market_return
         self.actions[self.step] = action
 
-        end_position = action - 1  # short, neutral, long
-        n_trades = end_position - start_position
-        self.positions[self.step] = end_position
+        cur_position = action - 1  # short, neutral, long
+        n_trades = cur_position - prev_position
+        self.positions[self.step] = cur_position
         self.trades[self.step] = n_trades
 
         # roughly value based since starting NAV = 1
         trade_costs = abs(n_trades) * self.trading_cost_bps
         time_cost = 0 if n_trades else self.time_cost_bps
         self.costs[self.step] = trade_costs + time_cost
-        reward = start_position * market_return - self.costs[self.step]
+        reward = cur_position * market_return - self.costs[self.step]
         self.strategy_returns[self.step] = reward
 
+        end = False
         if self.step != 0:
             self.navs[self.step] = start_nav * (1 + self.strategy_returns[self.step])
             self.market_navs[self.step] = start_market_nav * (1 + self.market_returns[self.step])
+            #if self.navs[self.step] > 2 or self.navs[self.step] < .01:
+            #    end = True
 
         info = {'reward': reward,
                 'nav'   : self.navs[self.step],
                 'costs' : self.costs[self.step]}
 
         self.step += 1
-        return reward, info
+
+        return reward, info, end
 
     def result(self):
         """returns current state as pd.DataFrame """
@@ -502,9 +502,9 @@ class TradingEnvironment(gym.Env):
         """Returns state observation, reward, done and info"""
         assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action))
         observation, done = self.data_source.take_step(action=action)
-        reward, info = self.simulator.take_step(action=action,
+        reward, info, end = self.simulator.take_step(action=action,
                                                 market_return=observation[0])
-        return observation, reward, done, info
+        return observation, reward, done or end, info
 
     def reset(self, training=True):
         """Resets DataSource and TradingSimulator; returns first observation"""
