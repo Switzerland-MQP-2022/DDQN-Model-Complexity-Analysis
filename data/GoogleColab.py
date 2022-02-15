@@ -1,362 +1,62 @@
-# %% md
+#%% md
 
 # Overview
 
-This
-notebook
-documents
-the
-analysis
-of
-a
-variety
-of
-reinforcement
-learning
-models
-dedicated
-to
-trading
-of
-SPDR
-S & P
-500
-ETF
-Trust(SPY)
-stock.These
-models
-all
-use
-the
-same
-algorithms and structure, a
-Double
-Deep
-Q
-Learning
-model, but
-differ in their
-state
-space, or environment.
+This notebook documents the analysis of a variety of reinforcement learning models dedicated to trading of SPDR S&P 500 ETF Trust (SPY) stock.  These models all use the same algorithms and structure, a Double Deep Q Learning model, but differ in their state space, or environment.
 
-The
-goal
-of
-this
-project is to
-analyze
-how
-increasing
-the
-complexity
-of
-a
-model
-'s state space affects the model'
-s
-performance.This is an
-interesting
-topic
-because
-naturally
-state
-spaces
-may
-be
-too
-simple
-to
-properly
-learn, but
-due
-to
-the
-"Curse of Dimensionality," if a
-state
-space
-gets
-too
-complicated, we
-can
-expect
-the
-model
-to
-overfit and possibly
-suffer
-worse
-performance.
+The goal of this project is to analyze how increasing the
+complexity of a model's state space affects the model's performance. This is an interesting topic because naturally state spaces may be too simple to properly learn, but due to the "Curse of Dimensionality," if a state space gets too complicated, we can expect the model to overfit and possibly suffer worse performance.
 
-This
-notebook
-stores
-each
-of
-the
-state
-spaces
-we
-experimented
-with, and allows a user to select a state space to train themselves due to the long processing time required to train each state space at once.
+This notebook stores each of the state spaces we experimented with, and allows a user to select a state space to train themselves due to the long processing time required to train each state space at once.
 
-# %% md
+#%% md
 
 # Introduction
 
-Advances in machine
-learning(ML) and artificial
-intelligence(AI)
-have
-enabled
-us
-to
-enhance
-our
-lives and tackle
-a
-variety
-of
-complex
-problems.The
-financial
-market is a
-prime
-example
-of
-a
-field
-where
-researchers
-are
-employing
-these
-techniques.Since
-the
-financial
-market is very
-dynamic and ever
-fluctuating, it
-presents
-a
-unique
-challenges
-to
-consider
-when
-developing
-these
-systems, but
-also
-allows
-the
-power
-of
-machine
-learning and AI
-to
-shine.Before
-the
-development
-of
-AI, it
-was
-the
-job
-of
-investors and traders
-to
-use
-market
-data
-to
-make
-optimal
-decisions
-that
-maximize and reduce
-risk
-within
-the
-context
-of
-a
-trading
-system.However, due
-to
-market
-complexities, it
-can
-be
-challenging
-for agents to consider all the relevant information to take an informed position.This is where reinforcement learning (RL), an area of ML, comes into play.Through repeated interaction with a market environment, an RL agent can learn optimal trading strategies by taking certain actions, receiving rewards based on these, and adapting future actions based on previous experience.
+Advances in machine learning (ML) and artificial intelligence (AI) have enabled us to enhance our lives and tackle a variety of
+complex problems. The financial market is a prime example of a field where researchers are employing these techniques. Since the financial market is very dynamic and ever fluctuating, it presents a unique challenges to consider when developing these systems, but also allows the power of machine learning and AI to shine. Before the development of AI, it was the job of investors and traders to use market data to make optimal decisions that maximize and reduce risk within the context of a trading system. However, due to market complexities, it can be challenging for agents to consider all the relevant information to take an informed position. This is where reinforcement learning (RL), an area of ML, comes into play. Through repeated interaction with a market environment, an RL agent can learn optimal trading strategies by taking certain actions, receiving rewards based on these, and adapting future actions based on previous experience.
 
-Reinforcement
-Learning
-has
-a
-rich
-history
-of
-use in the
-realm
-of
-finance.In
-the
-1990
-s, Moody and Saffell
-experimented
-with real - time recurrent learning in order to demonstrate a predictable structure to U.S.stock prices (Moody & Saffell, 1998).They claimed that their agent was able to make a 4000 % profit over the simulated period of 1970 to 1994, far outperforming the S & P 500 stock index during the same timespan.
+Reinforcement Learning has a rich history of use in the realm of finance. In the 1990s, Moody and Saffell experimented with real-time recurrent learning in order to demonstrate a predictable structure to U.S. stock prices (Moody & Saffell, 1998). They claimed that their agent was able to make a 4000% profit over the simulated period of 1970 to 1994, far outperforming the S&P 500 stock index during the same timespan.
 
-However, previous
-studies
-into
-applying
-reinforcement
-learning
-into
-finance
-have
-provided
-insufficient
-analysis
-of
-their
-chosen
-model
-compared
-to
-similar
-ones.For
-instance, Wu
-et
-al.came
-up
-with their own technical indicators to add to their reinforcement model[233].However, they did not test their model against simpler models, they only tested it against the turtle trading strategy[256], a simple rule-based strategy.This is an issue due to the well-studied phenomenon known as the “curse of
-dimensionality.” Simply
-put, as one
-adds
-more
-dimensions
-to
-a
-dataset
-with a fixed number of data points, the density of the data points gets smaller and thus it becomes harder to prevent models from overfitting.Somewhat paradoxically, this could lead to more complex models performing worse than simpler ones.Thus, it is important to test the model on multiple dimensionalities of data, to make sure the data is not too complex that it overfits,
-or too
-simple
-that
-it
-can’t
-learn
-enough.
+However, previous studies into applying reinforcement learning into finance have provided insufficient analysis of their chosen model compared to similar ones. For instance, Wu et al. came up with their own technical indicators to add to their reinforcement model [233]. However, they did not test their model against simpler models, they only tested it against the turtle trading strategy [256], a simple rule-based strategy. This is an issue due to the well-studied phenomenon known as the “curse of
+dimensionality.” Simply put, as one adds more dimensions to a dataset with a fixed number of data points, the density of the data points gets smaller and thus it becomes harder to prevent models from overfitting. Somewhat paradoxically, this could lead to more complex models performing worse than simpler ones. Thus, it is important to test the model on multiple dimensionalities of data, to make sure the data is not too complex that it overfits,
+or too simple that it can’t learn enough.
 
-Since
-these
-papers
-do
-not provide
-an in -depth
-analysis, this
-notebook
-analyses
-how
-altering
-the
-complexity
-of
-data
-available
-to
-a
-trading
-agent
-affects
-its
-overall
-performance
-relative
-to
-the
-market.To
-do
-this, this
-notebook
-adopts
-a
-DDQN
-algorithm
-to
-trade in three
-environments, each
-focusing
-on
-one
-of
-equity
-indices, foreign
-exchange(Forex), and market3.Each
-market
-environment
-contains
-multiple
-state
-spaces
-with varying amounts of data and asset dimensionality, such as 1-Day returns, 5-Day returns, currencies and market3example.The user can then decide which dataset and state space to train, thus seeing how well each model performs, and which amount of dimentionality is the best.
+Since these papers do not provide an in-depth analysis, this notebook analyses how altering the complexity of data available to a trading agent affects its overall performance relative to the market. To do this, this notebook adopts a DDQN algorithm to trade in three environments, each focusing on one of equity indices, foreign exchange (Forex), and market3. Each market environment contains multiple state spaces with varying amounts of data and asset dimensionality, such as 1-Day returns, 5-Day returns, currencies and market3example. The user can then decide which dataset and state space to train, thus seeing how well each model performs, and which amount of dimentionality is the best.
 
-# %% md
+#%% md
 
 ## <mark>Prepare the Program Environment</mark>
-1) Update
-the
-"tables"
-package, then
-restart
-the
-runtime
+1) Update the "tables" package, then restart the runtime
 
-2) Upload
-the
-IndexFundsData.csv
-file
-into
-colab
+2) Upload the IndexFundsData.csv file into colab
 
-3) Upload
-the
-training_env.py
-file
+3) Upload the training_env.py file
 
 
-# %%
+#%%
 
-! pip
-install - -user - -upgrade
-tables
+! pip install --user --upgrade tables
 
-# %% md
+#%% md
 
 # Data Description
 
-We
-use
-three
-data
-sets
-for our models: one
-for equity indexes; one for the foreign exchange market;
-and one for _____.These data sets were collected from Refinitiv and Yahoo Finance, and they consist of the daily closing prices of
+We use three data sets for our models: one for equity indexes; one for the foreign exchange market;
+and one for _____. These data sets were collected from Refinitiv and Yahoo Finance, and they consist of the daily closing prices of
 their respective assets.
 
-For the equity indices, we have the prices of SPY (the index we are predicting), as well as the prices for NSDQ.O, DIA, GLD, and USO.We are using NSDQ.O and DIA as they are similar indices that could reasonably help to predict SPY.This data is used in our first and second most complex environments.We are then using GLD and USO as they are further removed from the SPY and actually make the model preform worse, thus showing the curse of dimensionality.That data is only used in our most complex environment.
+For the equity indices, we have the prices of SPY (the index we are predicting), as well as the prices for NSDQ.O, DIA, GLD, and USO. We are using NSDQ.O and DIA as they are similar indices that could reasonably help to predict SPY. This data is used in our first and second most complex environments. We are then using GLD and USO as they are further removed from the SPY and actually make the model preform worse, thus showing the curse of dimensionality. That data is only used in our most complex environment.
 
-# %% md
+#%% md
 
 ## Data Collection
 
-# %% md
+#%% md
 
 ### Imports & Settings
 
-# %%
+#%%
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -367,59 +67,43 @@ import pandas as pd
 
 pd.set_option('display.expand_frame_repr', False)
 
-# %% md
+#%% md
 
 ### Set Path and Read CSV File
 
-# %%
+#%%
 
 DATA_STORE = Path('IndexAssets.h5')
 
 df = (pd.read_csv('IndexFundsData.csv'))
 
-print(df.head(10))  # make sure we got the data
+print(df.head(10))#make sure we got the data
 
-# %% md
+#%% md
 
 ### Store Data
 
-# %%
+#%%
 
 with pd.HDFStore(DATA_STORE) as store:
     store.put('SAP', df)
 
-# %% md
+#%% md
 
 ## Model
 
-# %% md
+#%% md
 
 ### Connect and Store to Google Drive
 
-Allow
-this
-notebook
-to
-access
-your
-Google
-Drive
-when
-prompted, as that is where
-the
-data
-will
-be
-stored
+Allow this notebook to access your Google Drive when prompted, as that is where the data will be stored
 
-# %%
+#%%
 
 import warnings
-
 warnings.filterwarnings('ignore')
 
-% matplotlib
-inline
+%matplotlib inline
 from pathlib import Path
 from time import time
 from collections import deque
@@ -444,250 +128,115 @@ from gym.envs.registration import register
 
 # conect to google drive so we can store data
 from google.colab import drive
-
 drive.mount('/content/gdrive')
 
-# %% md
+#%% md
 
 # Methodology
-Since
-we
-are
-comparing
-the
-effectiveness
-of
-data
-with different dimensionalities we naturally have to train multiple models.The state variables for each model is shown in the table below.
+Since we are comparing the effectiveness of data with different dimensionalities we naturally have to train multiple models. The state variables for each model is shown in the table below.
 
 | Model 1 | Model 2 | Model 3 | Model 4 | Model 5 | Model 6 |
-| - | - | - | - | - | - |
-| 1-Day Return | Model 1 Vars.< br > < br > Previous Action | Model 2 Vars.< br > < br > Previous Price | Model 3 Vars.< br > < br > 2-Day Return < br > < br > 5-Day Return < br > < br > 10-Day Return < br > < br > 21-Day Return | Model 4 Vars.< br > < br > 2 Similar Indexes'<br>· 1-Day Return<br>· 5-Day Return<br>· 21-Day Return | Model 5 Vars.<br><br>2 Unconnected Indexes' < br > · 1-Day Return < br > · 5-Day Return < br > · 21-Day Return |
+|-|-|-|-|-|-|
+| 1-Day Return| Model 1 Vars.<br><br>Previous Action | Model 2 Vars.<br><br>Previous Price | Model 3 Vars.<br><br>2-Day Return<br><br>5-Day Return<br><br>10-Day Return<br><br>21-Day Return | Model 4 Vars.<br><br>2 Similar Indexes'<br>· 1-Day Return<br>· 5-Day Return<br>· 21-Day Return | Model 5 Vars.<br><br>2 Unconnected Indexes'<br>· 1-Day Return<br>· 5-Day Return<br>· 21-Day Return |
 
 This notebook allows you to specify which state space you want to use, as training all of them at once could be very time-consuming.
 
-# %% md
+#%% md
 
 ### Settings
-< mark > Select which model you want to run by setting the model variable
+<mark> Select which model you want to run by setting the model variable
 
-# %%
+#%%
 
-# Which model to run(0 - 6, 0 being the simplest, 6 being the most complex)
+#Which model to run(0 - 6, 0 being the simplest, 6 being the most complex)
 model = 0
 
 
-# Random setup stuff
+#Random setup stuff
 np.random.seed(42)
 tf.random.set_seed(42)
 sns.set_style('whitegrid')
 
-# Use a GPU is we have one
+#Use a GPU is we have one
 gpu_devices = tf.config.experimental.list_physical_devices('GPU')
 if gpu_devices:
     print('Using GPU')
-tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+    tf.config.experimental.set_memory_growth(gpu_devices[0], True)
 else:
-print('Using CPU')
+    print('Using CPU')
 
-# Set up results directory to google drive
+#Set up results directory to google drive
 results_path = "/content/gdrive/My Drive/"
 
+
 ### Helper functions
-
-
 def format_time(t):
     m_, s = divmod(t, 60)
     h, m = divmod(m_, 60)
     return '{:02.0f}:{:02.0f}:{:02.0f}'.format(h, m, s)
 
-
-# %% md
+#%% md
 
 ## Simulation Environment
 
-Our
-environment is a
-fairly
-simple
-market
-trading
-simulation.The
-agent
-has
-a
-choice
-of
-three
-actions:
+Our environment is a fairly simple market trading simulation. The agent has a choice of three actions:
 
-> A = E
-{0, 1, 2}, Sell
-Short, Flat, Buy
-Long
+>A = E{0,1,2}, Sell Short, Flat, Buy Long
 
 Where
-*0: Agent
-shorts
-the
-index
-fund
-equal
-to
-the
-amount
-of
-possessed
-capital.
-*1: Agent
-transfers
-all
-possessed
-capital
-into
-cash and closes
-all
-short
-positions
-*2: Agent
-buys as much
-of
-the
-given
-fund as possible
-with the possessed capital.
+* 0: Agent shorts the index fund equal to the amount of possessed capital.
+* 1: Agent transfers all possessed capital into cash and closes all short positions
+* 2: Agent buys as much of the given fund as possible with the possessed capital.
 
-This is a
-very
-simplistic
-model
-because
-the
-agent
-cannot
-invest
-only
-a
-portion
-of
-it
-'s capital; it must invest all of its capital or none.
+This is a very simplistic model because the agent cannot invest only a portion of it's capital; it must invest all of its capital or none.
 
-At
-each
-time
-step, the
-simulation
-updates
-the
-portfolio
-'s Net Asset Value (NAV), and performs the agent'
-s
-chosen
-action.The
-NAV is calculated
-by
-the
-following
-formula:
+At each time step, the simulation updates the portfolio's Net Asset Value (NAV), and performs the agent's chosen action. The NAV is calculated by the following formula:
 
 $$
-NAV_
-{new} = NAV_
-{old} * (1 + Reward)
+NAV_{new} = NAV_{old} * (1 + Reward)
 $$
 
-The
-function
-rewarding
-the
-agent is simply
-the
-percentage
-change
-of
-the
-NAV.The
-simulation
-uses
-the
-following
-equation
-to
-calculate
-the
-reward
-function:
+The function rewarding the agent is simply the percentage change of the NAV. The simulation uses the following equation to calculate the reward function:
 
 $$
-Reward = [(Action_{Yesterday} - 1) * Return_{1 Day}] – Trading
-Costs – Daily
-Cost
+Reward = [(Action_{Yesterday} - 1) * Return_{1 Day}] – Trading Costs – Daily Cost
 $$
-< br >
+<br>
 where
 $$
-Trading
-Costs = 0.001 * | Action_
-{Today} - Action_
-{Yesterday} |,
+Trading Costs = 0.001 * |Action_{Today} - Action_{Yesterday}|,
 $$
-< br >
+<br>
 $$
-Daily
-Cost = 0.0001
+Daily Cost = 0.0001
 $$
 
-Yesterday
-'s action is decremented by 1 so that it translates the action space to -1, 0, and 1. This way, if the agent held cash (now equal to 0), the 1-Day Return will not affect the NAV. If agent bought the stock (now equal
-to
-1), the
-percent
-change
-of
-NAV
-will
-directly
-correlate
-to
-the
-1 - Day
-Return.And if the
-agent
-instead
-shorted, the
-percent
-change
-would
-be
-inversely
-correlated
-to
-the
-1 - Day
-Return.
+Yesterday's action is decremented by 1 so that it translates the action space to -1, 0, and 1. This way, if the agent held cash (now equal to 0), the 1-Day Return will not affect the NAV. If agent bought the stock (now equal
+to 1), the percent change of NAV will directly correlate to the 1-Day Return. And if the agent instead shorted, the percent change would be inversely correlated to the 1-Day Return.
 
-# %% md
+
+
+#%% md
 
 ### Create and Initialize Environment
 
-# %%
+#%%
 
-# Simulation variables
+#Simulation variables
 trading_days = 252
 trading_cost_bps = 1e-3
 time_cost_bps = 1e-4
 
 register(
-id = 'trading-v0',
-entry_point = 'trading_env:TradingEnvironment',
-max_episode_steps = trading_days
+    id='trading-v0',
+    entry_point='trading_env:TradingEnvironment',
+    max_episode_steps=trading_days
 )
 
 f'Trading costs: {trading_cost_bps:.2%} | Time costs: {time_cost_bps:.2%}'
 
-# Initalize environment
-trading_environment = gym.make('trading-v0', trading_days=trading_days, model=model)
+#Initalize environment
+trading_environment = gym.make('trading-v0', trading_days = trading_days, model = model)
 trading_environment.env.trading_days = trading_days
 trading_environment.env.data_source.trading_days = trading_days
 trading_environment.env.simulator.steps = trading_days
@@ -704,15 +253,15 @@ state_dim = trading_environment.observation_space.shape[0]
 num_actions = trading_environment.action_space.n
 max_episode_steps = trading_environment.spec.max_episode_steps
 
-# %% md
+
+
+#%% md
 
 ### Define Agent
 
-# %%
+#%%
 
 ## Define Trading Agent(the Neural Network)
-
-
 class DDQNAgent:
     def __init__(self, state_dim,
                  num_actions,
@@ -829,12 +378,11 @@ class DDQNAgent:
         if self.total_steps % self.tau == 0:
             self.update_target()
 
-
-# %% md
+#%% md
 
 ### Define Hyperparameters
 
-# %%
+#%%
 
 # Reinforcement Learning parameters
 
@@ -854,16 +402,16 @@ batch_size = 4096
 
 # Epsilon-Greedy Policy
 
-epsilon_start = 1.0  # starting point for epsilon
-epsilon_end = .01  # ending point for epsilon
-epsilon_decay_steps = 250  # the number of steps to get from start to end
-epsilon_exponential_decay = .99  # after 250 step(epsilon_decay_steps) epsilon = epsilon*epsilon_exponential_decay
+epsilon_start = 1.0 # starting point for epsilon
+epsilon_end = .01 # ending point for epsilon
+epsilon_decay_steps = 250 # the number of steps to get from start to end
+epsilon_exponential_decay = .99 # after 250 step(epsilon_decay_steps) epsilon = epsilon*epsilon_exponential_decay
 
-# %% md
+#%% md
 
 ## Create DDQN Agent
 
-# %%
+#%%
 
 # Clear out karas
 tf.keras.backend.clear_session()
@@ -893,12 +441,11 @@ max_episodes = 1000
 episode_time, navs, market_navs, diffs, episode_eps = [], [], [], [], []
 test_navs, test_market_navs, test_diffs = [], [], []
 
-
-# %% md
+#%% md
 
 ### Visualization
 
-# %%
+#%%
 
 # Prints the results from the training and testing runs
 def track_results(episode, nav_ma_100, nav_ma_10,
@@ -911,10 +458,9 @@ def track_results(episode, nav_ma_100, nav_ma_10,
     template += 'Market: {:>6.1%} ({:>6.1%}) | '
     template += 'Wins: {:>5.1%} | eps: {:>6.3f}'
     print(pretext + template.format(episode, format_time(total),
-                                    nav_ma_100 - 1, nav_ma_10 - 1,
-                                    market_nav_100 - 1, market_nav_10 - 1,
-                                    win_ratio, epsilon))
-
+                          nav_ma_100-1, nav_ma_10-1,
+                          market_nav_100-1, market_nav_10-1,
+                          win_ratio, epsilon))
 
 # Runs a year long simulation ("episode") on the testing data
 def test_data_simulation():
@@ -936,6 +482,7 @@ def test_data_simulation():
     # get results of last step
     test_final = test_result.iloc[-1]
 
+
     # apply return (net of cost) of last action to last starting NAV
     test_nav = test_final.nav * (1 + test_final.strategy_return)
     test_navs.append(test_nav)
@@ -956,11 +503,10 @@ def test_data_simulation():
                   np.mean(test_market_navs[-100:]),
                   np.mean(test_market_navs[-10:]),
                   # share of agent wins, defined as higher ending NAV
-                  np.sum([s > 0 for s in test_diffs[-100:]]) / min(len(test_diffs), 100),
+                  np.sum([s > 0 for s in test_diffs[-100:]])/min(len(test_diffs), 100),
                   time() - start, -1, pretext="Testing Results:")
 
-
-# %%
+#%%
 
 def saveData():
     print(len(diffs))
@@ -969,7 +515,7 @@ def saveData():
     numStateVars = len(exampleState)
 
     results = pd.DataFrame({'NumStateVars': numStateVars,
-                            'Episode': list(range(1, episode + 1)),
+                            'Episode': list(range(1, episode+1)),
                             'TrainAgent': navs,
                             'TrainMarket': market_navs,
                             'TrainDifference': diffs}).set_index('Episode')
@@ -977,10 +523,10 @@ def saveData():
     results['Strategy Wins (%)'] = (results.TrainDifference > 0).rolling(100).sum()
 
     test_results = pd.DataFrame({'NumStateVars': numStateVars,
-                                 'EpisodeDiv10': list(range(1, len(test_navs) + 1)),
-                                 'TestAgent': test_navs,
-                                 'TestMarket': test_market_navs,
-                                 'TestDifference': test_diffs}).set_index('EpisodeDiv10')
+                            'EpisodeDiv10': list(range(1, len(test_navs)+1)),
+                            'TestAgent': test_navs,
+                            'TestMarket': test_market_navs,
+                            'TestDifference': test_diffs}).set_index('EpisodeDiv10')
 
     test_results['Strategy Wins (%)'] = (test_results.TestDifference > 0).rolling(100).sum()
 
@@ -993,13 +539,12 @@ def saveData():
     results.to_csv(results_path + training_file_name)
     test_results.to_csv(results_path + testing_file_name)
 
-
-# %% md
+#%% md
 
 ### Train Agent
 
 
-# %%
+#%%
 
 start = time()
 results = []
@@ -1046,7 +591,7 @@ for episode in range(1, max_episodes + 1):
                       np.mean(market_navs[-100:]),
                       np.mean(market_navs[-10:]),
                       # share of agent wins, defined as higher ending NAV
-                      np.sum([s > 0 for s in diffs[-100:]]) / min(len(diffs), 100),
+                      np.sum([s > 0 for s in diffs[-100:]])/min(len(diffs), 100),
                       time() - start, ddqn.epsilon)
         test_data_simulation()
 
@@ -1065,24 +610,24 @@ track_results(episode,
               np.mean(market_navs[-100:]),
               np.mean(market_navs[-10:]),
               # share of agent wins, defined as higher ending NAV
-              np.sum([s > 0 for s in diffs[-100:]]) / min(len(diffs), 100),
+              np.sum([s > 0 for s in diffs[-100:]])/min(len(diffs), 100),
               time() - start, ddqn.epsilon)
 test_data_simulation()
 trading_environment.close()
 
-# %% md
+#%% md
 
 ## Store Results
 
-# %%
+#%%
 
 saveData()
 
-# %% md
+#%% md
 
 ## Evaluate Results
 
-# %%
+#%%
 
 # plot density histogram
 
@@ -1090,9 +635,9 @@ with sns.axes_style('white'):
     sns.distplot(results.TrainDifference)
     sns.despine()
 
-# %%
+#%%
 
-# @title
+#@title
 # plot annual returns and agent outperformance line graphs
 
 fig, axes = plt.subplots(ncols=2, figsize=(14, 4), sharey=True)
