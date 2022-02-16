@@ -88,13 +88,13 @@ class DataSource:
         elif model == 1:
             self.preprocess_model_one()
         elif model == 2:
-            self.preprocess_data_two()
+            self.preprocess_model_two()
         elif model == 3:
-            self.preprocess_data_three()
+            self.preprocess_model_three()
         elif model == 4:
-            self.preprocess_data_four()
+            self.preprocess_model_four()
         elif model == 5:
-            self.preprocess_data_five()
+            self.preprocess_model_five()
         elif model == 10:
             self.preprocess_model_ten()
         # TODO add more models, just add them to the elif statements and add a function
