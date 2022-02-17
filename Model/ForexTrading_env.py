@@ -69,15 +69,15 @@ class DataSource:
         filepath = ""
         try:
             import google.colab
-            filepath = "IndexAssets.h5"
+            filepath = "FXAssets.h5"
         except:
-            filepath = "../data/IndexAssets.h5"
+            filepath = "../data/ForexAssets.h5"
 
 
         with pd.HDFStore(filepath) as store:
-            df = (store['SAP'])
+            df = (store['FX'])
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
-        df.columns = ['Date', 'close', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD']
+        df.columns = ["Date", "open", "OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"]
 
         return df
 
@@ -104,14 +104,14 @@ class DataSource:
     def preprocess_model_zero(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close'], axis=1)
+                     .drop(['Date', 'open'], axis=1)
                      .dropna())
 
 
@@ -126,16 +126,16 @@ class DataSource:
     def preprocess_model_one(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
         # TODO Add Previous action of agent
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close'], axis=1)
+                     .drop(['Date', 'open'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
@@ -156,11 +156,11 @@ class DataSource:
     def preprocess_model_two(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -185,15 +185,15 @@ class DataSource:
     def preprocess_model_three(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
 
         """calculate returns"""
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
 
         #remove unessisary data
@@ -219,27 +219,27 @@ class DataSource:
     def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD'], axis=1)
+                     .drop(["OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
-        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
-        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
-        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+        self.data['EURUSDret_1'] = self.data.OpenEURUSD.pct_change()
+        self.data['EURUSDret_5'] = self.data.OpenEURUSD.pct_change(5)
+        self.data['EURUSDret_21'] = self.data.OpenEURUSD.pct_change(21)
 
-        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
-        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
-        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+        self.data['USDCHFret_1'] = self.data.OpenUSDCHF.pct_change()
+        self.data['USDCHFret_5'] = self.data.OpenUSDCHF.pct_change(5)
+        self.data['USDCHFret_21'] = self.data.OpenUSDCHF.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(['Date', 'OpenEURUSD', 'OpenUSDCHF'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
@@ -263,31 +263,31 @@ class DataSource:
 
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
-        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
-        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
-        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+        self.data['EURUSDret_1'] = self.data.OpenEURUSD.pct_change()
+        self.data['EURUSDret_5'] = self.data.OpenEURUSD.pct_change(5)
+        self.data['EURUSDret_21'] = self.data.OpenEURUSD.pct_change(21)
 
-        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
-        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
-        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+        self.data['USDCHFret_1'] = self.data.OpenUSDCHF.pct_change()
+        self.data['USDCHFret_5'] = self.data.OpenUSDCHF.pct_change(5)
+        self.data['USDCHFret_21'] = self.data.OpenUSDCHF.pct_change(21)
 
-        self.data['USOret_1'] = self.data.CloseUSO.pct_change()
-        self.data['USOret_5'] = self.data.CloseUSO.pct_change(5)
-        self.data['USOret_21'] = self.data.CloseUSO.pct_change(21)
+        self.data['USDJPYret_1'] = self.data.OpenUSDJPY.pct_change()
+        self.data['USDJPYret_5'] = self.data.OpenUSDJPY.pct_change(5)
+        self.data['USDJPYret_21'] = self.data.OpenUSDJPY.pct_change(21)
 
-        self.data['GLDret_1'] = self.data.CloseGLD.pct_change()
-        self.data['GLDret_5'] = self.data.CloseGLD.pct_change(5)
-        self.data['GLDret_21'] = self.data.CloseGLD.pct_change(21)
+        self.data['NZDCADret_1'] = self.data.OpenNZDCAD.pct_change()
+        self.data['NZDCADret_5'] = self.data.OpenNZDCAD.pct_change(5)
+        self.data['NZDCADret_21'] = self.data.OpenNZDCAD.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD'], axis=1)
+                     .drop(['Date', 'OpenEURUSD', 'OpenUSDCHF', 'OpenUSDJPY', 'OpenNZDCAD'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
@@ -305,6 +305,7 @@ class DataSource:
         log.info(self.data.info())
 
     def preprocess_model_ten(self):
+        #OUTDATED
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
