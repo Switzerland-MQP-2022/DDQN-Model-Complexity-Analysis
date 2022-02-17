@@ -57,6 +57,7 @@ class DataSource:
         self.training = True
         self.data = []
         self.data = self.load_data()
+        self.model = model
         self.preprocess_data(model=model)
         self.min_values = self.data.min()
         self.max_values = self.data.max()
@@ -350,15 +351,21 @@ class DataSource:
         """Returns data for current trading day and done signal"""
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
-            # Add the action to the observation
-            obs = np.append(obs, action)
+            # check to make sure its not the simplest model
+            if self.model != 0:
+                # Add the action to the observation
+                obs = np.append(obs, action)
+
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
         else:
             obs = self.testData.iloc[self.offset + self.step].values
-            # Add the action to the observation
-            obs = np.append(obs, action)
+            # check to make sure its not the simplest model
+            if self.model != 0:
+                # Add the action to the observation
+                obs = np.append(obs, action)
+
             self.step += 1
             done = self.step > self.trading_days
             return obs, done
