@@ -81,11 +81,11 @@ class DataSource:
 
         return df
 
-    def preprocess_data(self, model=0):
+    def preprocess_data(self, model=1):
 
         # There are no switch statements in python so... giant if else it is
-        if model == 0:
-            self.preprocess_model_zero()
+        if model == 6:
+            self.preprocess_model_six()
         elif model == 1:
             self.preprocess_model_one()
         elif model == 2:
@@ -101,7 +101,7 @@ class DataSource:
         # TODO add more models, just add them to the elif statements and add a function
 
     # State 1: 1 Day Returns
-    def preprocess_model_zero(self):
+    def preprocess_model_one(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
@@ -123,7 +123,7 @@ class DataSource:
         log.info(self.data.info())
 
     # State 2: 1 Day Returns, Previous Action of Agent
-    def preprocess_model_one(self):
+    def preprocess_model_two(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
@@ -153,7 +153,7 @@ class DataSource:
         log.info(self.data.info())
 
     # State 3: 1 Day Returns, Previous Action of Agent, Previous Price
-    def preprocess_model_two(self):
+    def preprocess_model_three(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
@@ -182,7 +182,7 @@ class DataSource:
         log.info(self.data.info())
 
     # State 4: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price
-    def preprocess_model_three(self):
+    def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
@@ -216,7 +216,7 @@ class DataSource:
         log.info(self.data.info())
 
     # State 5: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
-    def preprocess_model_four(self):
+    def preprocess_model_five(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(["OpenUSDJPY", "OpenNZDCAD"], axis=1)
@@ -257,7 +257,7 @@ class DataSource:
         log.info(self.data.info())
 
     # State 6: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price, 2 Other Index's
-    def preprocess_model_five(self):
+    def preprocess_model_six(self):
         #remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan).dropna())
 
@@ -352,7 +352,7 @@ class DataSource:
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
             # check to make sure its not the simplest model
-            if self.model != 0:
+            if self.model != 1:
                 # Add the action to the observation
                 obs = np.append(obs, action)
 
@@ -362,7 +362,7 @@ class DataSource:
         else:
             obs = self.testData.iloc[self.offset + self.step].values
             # check to make sure its not the simplest model
-            if self.model != 0:
+            if self.model != 1:
                 # Add the action to the observation
                 obs = np.append(obs, action)
 
