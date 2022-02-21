@@ -54,8 +54,6 @@ class DataSource:
         self.testing_days = testing_days # how much data to store in the test set
         self.testData = 0 # data sets
         self.trainData = 0
-        self.origCol = 0
-        self.newCol = 0
         self.training = True #whether to use training or test data
         self.data = [] # full data set
         self.data = self.load_data()
@@ -318,15 +316,10 @@ class DataSource:
         maxTest = self.testData['close'].max()
         minTest = self.testData['close'].min()
         testRange = maxTest - minTest
-        col = self.testData['close']-minTrain
-        col = col*testRange/trainRange
-        col = col + minTest
-        print(maxTrain)
-        print(minTrain)
-        print(col.max())
-        print(col.min())
-        self.origCol = self.testData['close']
-        self.newCol = col
+        col = self.testData['close'] - minTest
+        col = col * trainRange / testRange
+        col = col + minTrain
+        self.testData['close'] = col
 
 
 
