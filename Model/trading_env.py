@@ -54,6 +54,8 @@ class DataSource:
         self.testing_days = testing_days # how much data to store in the test set
         self.testData = 0 # data sets
         self.trainData = 0
+        self.origCol = 0
+        self.newCol = 0
         self.training = True #whether to use training or test data
         self.data = [] # full data set
         self.data = self.load_data()
@@ -173,6 +175,8 @@ class DataSource:
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data) - self.testing_days)
 
+        self.scale_testPrices()
+
         log.info(self.data.info())
 
     # State 4: 1,2,5,10,21 Day Returns, Previous Action of Agent, Previous Price
@@ -207,6 +211,8 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -249,6 +255,8 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
+
+        self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -299,7 +307,28 @@ class DataSource:
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
 
+        self.scale_testPrices()
+
         log.info(self.data.info())
+
+    def scale_testPrices(self):
+        maxTrain = self.trainData['close'].max()
+        minTrain = self.trainData['close'].min()
+        trainRange = maxTrain - minTrain
+        maxTest = self.testData['close'].max()
+        minTest = self.testData['close'].min()
+        testRange = maxTest - minTest
+        col = self.testData['close']-minTrain
+        col = col*testRange/trainRange
+        col = col + minTest
+        print(maxTrain)
+        print(minTrain)
+        print(col.max())
+        print(col.min())
+        self.origCol = self.testData['close']
+        self.newCol = col
+
+
 
     def preprocess_model_ten(self):
         """calculate returns"""
