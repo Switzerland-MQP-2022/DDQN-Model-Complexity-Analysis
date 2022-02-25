@@ -48,43 +48,42 @@ class DataSource:
 
     """
 
-    def __init__(self, trading_days=252, model=0, normalize=True, testing_days=504, scale_test_prices=False):
+    def __init__(self, trading_days=252, model=0, normalize=True, testing_days=504):
         self.trading_days = trading_days
-        self.normalize = normalize # whether to normalize or not
-        self.testing_days = testing_days # how much data to store in the test set
-        self.testData = 0 # data sets
+        self.normalize = normalize
+        self.testing_days = testing_days
+        self.testData = 0
         self.trainData = 0
-        self.training = True #whether to use training or test data
-        self.data = [] # full data set
+        self.training = True
+        self.data = []
         self.data = self.load_data()
-        self.model = model # which model to use
-        self.scale_test_prices = scale_test_prices # where to scale the test prices to have the same range as the training prices
+        self.model = model
         self.preprocess_data(model=model)
-        self.step = 0 # which step we are on
-        self.offset = None # the offset within the data, curent state = data[offset+step]
+        self.min_values = self.data.min()
+        self.max_values = self.data.max()
+        self.step = 0
+        self.offset = None
 
-    #loads the data
     def load_data(self):
         # check if we are in google colab and update the file path accordingly
         filepath = ""
         try:
             import google.colab
-            filepath = "IndexAssets.h5"
+            filepath = "FXAssets.h5"
         except:
-            filepath = "../data/IndexAssets.h5"
+            filepath = "../data/ForexAssets.h5"
 
 
         with pd.HDFStore(filepath) as store:
-            df = (store['SAP'])
+            df = (store['FX'])
         # Set new column names *** make sure there are no special characters in it or else the df will break(I think)
-        df.columns = ['Date', 'close', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD']
+        df.columns = ["Date", "open", "OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"]
 
         return df
 
-    #preprosesses the data based on the specified model
     def preprocess_data(self, model=1):
 
-        # Select the model to use
+        # There are no switch statements in python so... giant if else it is
         if model == 6:
             self.preprocess_model_six()
         elif model == 1:
@@ -99,24 +98,25 @@ class DataSource:
             self.preprocess_model_five()
         elif model == 10:
             self.preprocess_model_ten()
+        # TODO add more models, just add them to the elif statements and add a function
 
     # State 1: 1 Day Returns
     def preprocess_model_one(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close'], axis=1)
+                     .drop(['Date', 'open'], axis=1)
                      .dropna())
 
 
         self.data = self.data.loc[:, ['returns']]
-        #split the data
+
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
 
@@ -126,21 +126,27 @@ class DataSource:
     def preprocess_model_two(self):
         # Remove NaN + unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
-
+        # TODO Add Previous action of agent
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # Remove incomplete/unnecessary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'close'], axis=1)
+                     .drop(['Date', 'open'], axis=1)
                      .dropna())
 
+        r = self.data.returns.copy()
+        if self.normalize:
+            self.data = pd.DataFrame(scale(self.data),
+                                     columns=self.data.columns,
+                                     index=self.data.index)
+        features = self.data.columns.drop('returns')
+        self.data['returns'] = r  # don't scale returns
+        self.data = self.data.loc[:, ['returns'] + list(features)]
 
-        self.data = self.data.loc[:, ['returns']]
-        # Split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
 
@@ -150,11 +156,11 @@ class DataSource:
     def preprocess_model_three(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
+        self.data['returns'] = self.data.open.pct_change()
 
         # remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
@@ -162,7 +168,6 @@ class DataSource:
                      .dropna())
 
         r = self.data.returns.copy()
-        # normalize
         if self.normalize:
             self.data = pd.DataFrame(scale(self.data),
                                      columns=self.data.columns,
@@ -170,12 +175,9 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
-        # split the data
+
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data) - self.testing_days)
-        # scale the testing prices if desired
-        if self.scale_test_prices:
-            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -183,15 +185,15 @@ class DataSource:
     def preprocess_model_four(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(["OpenEURUSD", "OpenUSDCHF", "OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
 
         """calculate returns"""
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
 
         #remove unessisary data
@@ -200,7 +202,6 @@ class DataSource:
                      .dropna())
 
         r = self.data.returns.copy()
-        # normalize
         if self.normalize:
             self.data = pd.DataFrame(scale(self.data),
                                      columns=self.data.columns,
@@ -208,12 +209,9 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
-        # split the data
+
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-        # scale the testing prices if desired
-        if self.scale_test_prices:
-            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -221,31 +219,30 @@ class DataSource:
     def preprocess_model_five(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['CloseUSO', 'CloseGLD'], axis=1)
+                     .drop(["OpenUSDJPY", "OpenNZDCAD"], axis=1)
                      .dropna())
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
-        #other indexes returns
-        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
-        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
-        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
-        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
-        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
-        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+        self.data['EURUSDret_1'] = self.data.OpenEURUSD.pct_change()
+        self.data['EURUSDret_5'] = self.data.OpenEURUSD.pct_change(5)
+        self.data['EURUSDret_21'] = self.data.OpenEURUSD.pct_change(21)
+
+        self.data['USDCHFret_1'] = self.data.OpenUSDCHF.pct_change()
+        self.data['USDCHFret_5'] = self.data.OpenUSDCHF.pct_change(5)
+        self.data['USDCHFret_21'] = self.data.OpenUSDCHF.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'CloseNSDQO', 'CloseDIA'], axis=1)
+                     .drop(['Date', 'OpenEURUSD', 'OpenUSDCHF'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
-        # normalize
         if self.normalize:
             self.data = pd.DataFrame(scale(self.data),
                                      columns=self.data.columns,
@@ -253,12 +250,9 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
-        # split the data
+
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-        # scale the testing prices if desired
-        if self.scale_test_prices:
-            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -269,35 +263,34 @@ class DataSource:
 
         """calculate returns"""
 
-        self.data['returns'] = self.data.close.pct_change()
-        self.data['ret_2'] = self.data.close.pct_change(2)
-        self.data['ret_5'] = self.data.close.pct_change(5)
-        self.data['ret_10'] = self.data.close.pct_change(10)
-        self.data['ret_21'] = self.data.close.pct_change(21)
-        # other indexes data
-        self.data['NSDQret_1'] = self.data.CloseNSDQO.pct_change()
-        self.data['NSDQret_5'] = self.data.CloseNSDQO.pct_change(5)
-        self.data['NSDQret_21'] = self.data.CloseNSDQO.pct_change(21)
+        self.data['returns'] = self.data.open.pct_change()
+        self.data['ret_2'] = self.data.open.pct_change(2)
+        self.data['ret_5'] = self.data.open.pct_change(5)
+        self.data['ret_10'] = self.data.open.pct_change(10)
+        self.data['ret_21'] = self.data.open.pct_change(21)
 
-        self.data['DIAret_1'] = self.data.CloseDIA.pct_change()
-        self.data['DIAret_5'] = self.data.CloseDIA.pct_change(5)
-        self.data['DIAret_21'] = self.data.CloseDIA.pct_change(21)
+        self.data['EURUSDret_1'] = self.data.OpenEURUSD.pct_change()
+        self.data['EURUSDret_5'] = self.data.OpenEURUSD.pct_change(5)
+        self.data['EURUSDret_21'] = self.data.OpenEURUSD.pct_change(21)
 
-        self.data['USOret_1'] = self.data.CloseUSO.pct_change()
-        self.data['USOret_5'] = self.data.CloseUSO.pct_change(5)
-        self.data['USOret_21'] = self.data.CloseUSO.pct_change(21)
+        self.data['USDCHFret_1'] = self.data.OpenUSDCHF.pct_change()
+        self.data['USDCHFret_5'] = self.data.OpenUSDCHF.pct_change(5)
+        self.data['USDCHFret_21'] = self.data.OpenUSDCHF.pct_change(21)
 
-        self.data['GLDret_1'] = self.data.CloseGLD.pct_change()
-        self.data['GLDret_5'] = self.data.CloseGLD.pct_change(5)
-        self.data['GLDret_21'] = self.data.CloseGLD.pct_change(21)
+        self.data['USDJPYret_1'] = self.data.OpenUSDJPY.pct_change()
+        self.data['USDJPYret_5'] = self.data.OpenUSDJPY.pct_change(5)
+        self.data['USDJPYret_21'] = self.data.OpenUSDJPY.pct_change(21)
+
+        self.data['NZDCADret_1'] = self.data.OpenNZDCAD.pct_change()
+        self.data['NZDCADret_5'] = self.data.OpenNZDCAD.pct_change(5)
+        self.data['NZDCADret_21'] = self.data.OpenNZDCAD.pct_change(21)
 
         #remove unessisary data
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
-                     .drop(['Date', 'CloseNSDQO', 'CloseDIA', 'CloseUSO', 'CloseGLD'], axis=1)
+                     .drop(['Date', 'OpenEURUSD', 'OpenUSDCHF', 'OpenUSDJPY', 'OpenNZDCAD'], axis=1)
                      .dropna())
 
         r = self.data.returns.copy()
-        # normalize
         if self.normalize:
             self.data = pd.DataFrame(scale(self.data),
                                      columns=self.data.columns,
@@ -305,35 +298,14 @@ class DataSource:
         features = self.data.columns.drop('returns')
         self.data['returns'] = r  # don't scale returns
         self.data = self.data.loc[:, ['returns'] + list(features)]
-        # split the data
+
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-        # scale the testing prices if desired
-        if self.scale_test_prices:
-            self.scale_testPrices()
 
         log.info(self.data.info())
 
-    def scale_testPrices(self):
-        """scale the prices of the testing data to have the same range as the training data"""
-        maxTrain = self.trainData['close'].max()
-        minTrain = self.trainData['close'].min()
-        trainRange = maxTrain - minTrain
-        maxTest = self.testData['close'].max()
-        minTest = self.testData['close'].min()
-        testRange = maxTest - minTest
-        # bring the data point ranges from 0 to testRange
-        col = self.testData['close'] - minTest
-        # scale the range to 0 to trainRange. (divide all points by testRange will get a range from 0 to 1,
-        # then multiply by trainRange to get the trainRange)
-        col = col * trainRange / testRange
-        # bring the range to minTrain to trainRange+minTrain = maxTrain
-        col = col + minTrain
-        self.testData['close'] = col
-
-
-
     def preprocess_model_ten(self):
+        #OUTDATED
         """calculate returns"""
 
         self.data['returns'] = self.data.close.pct_change()
@@ -361,35 +333,31 @@ class DataSource:
 
         log.info(self.data.info())
 
-    # resets data source
     def reset(self, training=True):
         """Provides starting index for time series and resets step"""
         self.training = training
         #if statment to decide to use training or test data
         if training:
             high = len(self.trainData.index) - self.trading_days
-            self.offset = np.random.randint(low=0, high=high) # get a new offset to randomize start
+            self.offset = np.random.randint(low=0, high=high)
             self.step = 0
         else:
             high = len(self.testData.index) - self.trading_days
-            self.offset = np.random.randint(low=0, high=high) # get a new offset to randomize start
+            self.offset = np.random.randint(low=0, high=high)
             self.step = 0
 
 
     def take_step(self, action=1):
         """Returns data for current trading day and done signal"""
-        #check if we are using training or test data
         if self.training:
             obs = self.trainData.iloc[self.offset + self.step].values
             # check to make sure its not the simplest model
             if self.model != 1:
                 # Add the action to the observation
                 obs = np.append(obs, action)
-            # increase step
+
             self.step += 1
-            # check if the year is over
             done = self.step > self.trading_days
-            # return state
             return obs, done
         else:
             obs = self.testData.iloc[self.offset + self.step].values
@@ -398,9 +366,8 @@ class DataSource:
                 # Add the action to the observation
                 obs = np.append(obs, action)
 
-            self.step += 1 # increase step
-            done = self.step > self.trading_days # check if the year is over
-            # return state
+            self.step += 1
+            done = self.step > self.trading_days
             return obs, done
 
 
@@ -413,7 +380,6 @@ class TradingSimulator:
         self.time_cost_bps = time_cost_bps
         self.steps = steps
         self.step = 0
-        # data storage for historical analysis
         self.actions = np.zeros(self.steps)
         self.navs = np.ones(self.steps)
         self.market_navs = np.ones(self.steps)
@@ -423,7 +389,6 @@ class TradingSimulator:
         self.trades = np.zeros(self.steps)
         self.market_returns = np.zeros(self.steps)
 
-    # resets all the variables to how they are initialized
     def reinitialize(self):
         # change every step
         self.step = 0
@@ -435,8 +400,7 @@ class TradingSimulator:
         self.costs = np.zeros(self.steps)
         self.trades = np.zeros(self.steps)
         self.market_returns = np.zeros(self.steps)
-
-    # resets all the variables to how they should be
+    
     def reset(self):
         self.step = 0
         self.actions.fill(0)
@@ -453,27 +417,26 @@ class TradingSimulator:
             based on an action and latest market return
             and returns the reward and a summary of the day's activity. """
 
-        prev_position = self.positions[max(0, self.step - 1)]# get the previous position
-        start_nav = self.navs[max(0, self.step - 1)] # get the previous NAV
-        start_market_nav = self.market_navs[max(0, self.step - 1)] # get the previous market NAV
-        self.market_returns[self.step] = market_return # store today's return
-        self.actions[self.step] = action # store the action
+        prev_position = self.positions[max(0, self.step - 1)]
+        start_nav = self.navs[max(0, self.step - 1)]
+        start_market_nav = self.market_navs[max(0, self.step - 1)]
+        self.market_returns[self.step] = market_return
+        self.actions[self.step] = action
 
-        cur_position = action - 1  # short, neutral, long, the action is between 0 - 2 but we want it to be -1, 0, 1 to make math easier
-        n_trades = cur_position - prev_position # get the number of trades we will have to do to execute the action
-        self.positions[self.step] = cur_position # store the position
-        self.trades[self.step] = n_trades # store the number of trades
+        cur_position = action - 1  # short, neutral, long
+        n_trades = cur_position - prev_position
+        self.positions[self.step] = cur_position
+        self.trades[self.step] = n_trades
 
         # roughly value based since starting NAV = 1
         trade_costs = abs(n_trades) * self.trading_cost_bps
-        time_cost = 0 if n_trades else self.time_cost_bps # only deduct if the agent repeated an action
-        self.costs[self.step] = trade_costs + time_cost # store the total costs
-        reward = cur_position * market_return - self.costs[self.step] # calculate the reward, cur_position = 1 if buy -1 if short
-        self.strategy_returns[self.step] = reward # store reward
+        time_cost = 0 if n_trades else self.time_cost_bps
+        self.costs[self.step] = trade_costs + time_cost
+        reward = cur_position * market_return - self.costs[self.step]
+        self.strategy_returns[self.step] = reward
 
         end = False
         if self.step != 0:
-            # update navs
             self.navs[self.step] = start_nav * (1 + self.strategy_returns[self.step])
             self.market_navs[self.step] = start_market_nav * (1 + self.market_returns[self.step])
             #if self.navs[self.step] > 2 or self.navs[self.step] < .01:
@@ -514,6 +477,10 @@ class TradingEnvironment(gym.Env):
     Going from short to long implies two trades.
     Not trading also incurs a default time cost of 1bps per step.
 
+    An episode begins with a starting Net Asset Value (NAV) of 1 unit of cash.
+    If the NAV drops to 0, the episode ends with a loss.
+    If the NAV hits 2.0, the agent wins.
+
     The trading simulator tracks a buy-and-hold strategy as benchmark.
     """
     metadata = {'render.modes': ['human']}
@@ -522,29 +489,29 @@ class TradingEnvironment(gym.Env):
                  trading_days=252,
                  trading_cost_bps=1e-3,
                  time_cost_bps=1e-4,
-                 model=1,
-                 scale_test_prices=False):
+                 model=0):
         self.trading_days = trading_days
         self.trading_cost_bps = trading_cost_bps
         self.time_cost_bps = time_cost_bps
-        self.data_source = DataSource(trading_days=self.trading_days, model=model, scale_test_prices=scale_test_prices) # where it gets its data
+        self.data_source = DataSource(trading_days=self.trading_days, model=model)
         self.simulator = TradingSimulator(steps=self.trading_days,
                                           trading_cost_bps=self.trading_cost_bps,
-                                          time_cost_bps=self.time_cost_bps) # where it simulates its market
-        self.action_space = spaces.Discrete(3) #number of actions
+                                          time_cost_bps=self.time_cost_bps)
+        self.action_space = spaces.Discrete(3)
+        # self.observation_space = spaces.Box(self.data_source.min_values,
+        #                                     self.data_source.max_values)
         self.reset()
 
-    # set random seed
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def step(self, action):
         """Returns state observation, reward, done and info"""
-        assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action)) # check if the action is valid
-        observation, done = self.data_source.take_step(action=action) # get the next state
+        assert self.action_space.contains(action), '{} {} invalid'.format(action, type(action))
+        observation, done = self.data_source.take_step(action=action)
         reward, info, end = self.simulator.take_step(action=action,
-                                                market_return=observation[0]) # simulate the action
+                                                market_return=observation[0])
         return observation, reward, done or end, info
 
     def reset(self, training=True):
