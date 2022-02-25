@@ -58,10 +58,10 @@ class DataSource:
         self.data = [] # full data set
         self.data = self.load_data()
         self.model = model # which model to use
+        self.scale_test_prices = scale_test_prices # where to scale the test prices to have the same range as the training prices
         self.preprocess_data(model=model)
         self.step = 0 # which step we are on
         self.offset = None # the offset within the data, curent state = data[offset+step]
-        self.scale_test_prices = scale_test_prices
 
     #loads the data
     def load_data(self):
@@ -316,7 +316,6 @@ class DataSource:
 
     def scale_testPrices(self):
         """scale the prices of the testing data to have the same range as the training data"""
-        print("scalling")
         maxTrain = self.trainData['close'].max()
         minTrain = self.trainData['close'].min()
         trainRange = maxTrain - minTrain
