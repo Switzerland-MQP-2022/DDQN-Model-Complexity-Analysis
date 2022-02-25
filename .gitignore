@@ -11,8 +11,12 @@
 data/assets.h5
 data/SPYAssets.h5
 data/**Assets.h5
-Model/results/
-Model/__pycache__/
+IndexModel/results/
+IndexModel/__pycache__/
 SimpleModel/results/
 SimpleModel/__pycache__/
+IndexIntradayModel/results/
+IndexIntradayModel/__pycache__/
+FXModel/results/
+FXModel/__pycache__/
 .idea/
