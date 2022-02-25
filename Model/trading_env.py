@@ -514,10 +514,6 @@ class TradingEnvironment(gym.Env):
     Going from short to long implies two trades.
     Not trading also incurs a default time cost of 1bps per step.
 
-    An episode begins with a starting Net Asset Value (NAV) of 1 unit of cash.
-    If the NAV drops to 0, the episode ends with a loss.
-    If the NAV hits 2.0, the agent wins.
-
     The trading simulator tracks a buy-and-hold strategy as benchmark.
     """
     metadata = {'render.modes': ['human']}
