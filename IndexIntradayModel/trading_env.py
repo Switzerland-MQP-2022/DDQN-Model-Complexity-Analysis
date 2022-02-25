@@ -69,9 +69,9 @@ class DataSource:
         filepath = ""
         try:
             import google.colab
-            filepath = "IndexAssets.h5"
+            filepath = "IndexIntradayAssets.h5"
         except:
-            filepath = "../data/IndexAssets.h5"
+            filepath = "../data/IndexIntradayAssets.h5"
 
 
         with pd.HDFStore(filepath) as store:
