@@ -48,7 +48,7 @@ class DataSource:
 
     """
 
-    def __init__(self, trading_days=252, model=0, normalize=True, testing_days=504):
+    def __init__(self, trading_days=252, model=0, normalize=True, testing_days=504, scale_test_prices=False):
         self.trading_days = trading_days
         self.normalize = normalize # whether to normalize or not
         self.testing_days = testing_days # how much data to store in the test set
@@ -58,6 +58,7 @@ class DataSource:
         self.data = [] # full data set
         self.data = self.load_data()
         self.model = model # which model to use
+        self.scale_test_prices = scale_test_prices # where to scale the test prices to have the same range as the training prices
         self.preprocess_data(model=model)
         self.step = 0 # which step we are on
         self.offset = None # the offset within the data, curent state = data[offset+step]
@@ -172,8 +173,9 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data) - self.testing_days)
-
-        self.scale_testPrices()
+        # scale the testing prices if desired
+        if self.scale_test_prices:
+            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -209,8 +211,9 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-
-        self.scale_testPrices()
+        # scale the testing prices if desired
+        if self.scale_test_prices:
+            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -253,8 +256,9 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-
-        self.scale_testPrices()
+        # scale the testing prices if desired
+        if self.scale_test_prices:
+            self.scale_testPrices()
 
         log.info(self.data.info())
 
@@ -304,20 +308,26 @@ class DataSource:
         # split the data
         self.testData = self.data.tail(self.testing_days)
         self.trainData = self.data.head(len(self.data)-self.testing_days)
-
-        self.scale_testPrices()
+        # scale the testing prices if desired
+        if self.scale_test_prices:
+            self.scale_testPrices()
 
         log.info(self.data.info())
 
     def scale_testPrices(self):
+        """scale the prices of the testing data to have the same range as the training data"""
         maxTrain = self.trainData['close'].max()
         minTrain = self.trainData['close'].min()
         trainRange = maxTrain - minTrain
         maxTest = self.testData['close'].max()
         minTest = self.testData['close'].min()
         testRange = maxTest - minTest
+        # bring the data point ranges from 0 to testRange
         col = self.testData['close'] - minTest
+        # scale the range to 0 to trainRange. (divide all points by testRange will get a range from 0 to 1,
+        # then multiply by trainRange to get the trainRange)
         col = col * trainRange / testRange
+        # bring the range to minTrain to trainRange+minTrain = maxTrain
         col = col + minTrain
         self.testData['close'] = col
 
@@ -504,10 +514,6 @@ class TradingEnvironment(gym.Env):
     Going from short to long implies two trades.
     Not trading also incurs a default time cost of 1bps per step.
 
-    An episode begins with a starting Net Asset Value (NAV) of 1 unit of cash.
-    If the NAV drops to 0, the episode ends with a loss.
-    If the NAV hits 2.0, the agent wins.
-
     The trading simulator tracks a buy-and-hold strategy as benchmark.
     """
     metadata = {'render.modes': ['human']}
@@ -516,11 +522,12 @@ class TradingEnvironment(gym.Env):
                  trading_days=252,
                  trading_cost_bps=1e-3,
                  time_cost_bps=1e-4,
-                 model=1):
+                 model=1,
+                 scale_test_prices=False):
         self.trading_days = trading_days
         self.trading_cost_bps = trading_cost_bps
         self.time_cost_bps = time_cost_bps
-        self.data_source = DataSource(trading_days=self.trading_days, model=model) # where it gets its data
+        self.data_source = DataSource(trading_days=self.trading_days, model=model, scale_test_prices=scale_test_prices) # where it gets its data
         self.simulator = TradingSimulator(steps=self.trading_days,
                                           trading_cost_bps=self.trading_cost_bps,
                                           time_cost_bps=self.time_cost_bps) # where it simulates its market
