@@ -8,26 +8,6 @@ Gitignore helpful rules:
 
 # Running Instructions:
 
-## Model Folder
-
-### On Google Colab
- - Open the Model/GoogleColabModel.ipynb Jupyter notebook up with Google Colab, either through uploading it from your computer or connecting via GitHub
- - Set the Runtime environment as you see fit
- - On the left-hand toolbar, click on the folder icon(should be at the bottom). This will allow you to upload files
- - Upload the data/IndexFundsData.csv file, and the Model/trading_env.py file to the main folder
- - Run all the code modules
- - when prompted allow access to your Google Drive, as that is where it will save the results
- - right after the Google Drive prompt are all the model parameters, adjust them how you see fit.
- - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
-
-
-### On a PC
- - Open the data/CreateIndexFundDataSet.ipynb Jupyter Notebook with your desired Jupyter IDE, we used PyCharm and the Jupyter Notebook web application
- - Run all the modules, and make sure it doesn't crash
- - Open the Model/PC_DDQ_LearningModel.ipynb Jupyter Notebook
- - Right after the imports adjust the model parameters as you see fit
- - run all the code modules
- - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
 
 ## SimpleModel Folder
 
@@ -49,6 +29,49 @@ Gitignore helpful rules:
  - Right after the imports adjust the model parameters as you see fit
  - run all the code modules
  - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
+
+## IndexModel Folder
+
+### On Google Colab
+ - Open the IndexModel/GoogleColabModel.ipynb Jupyter notebook up with Google Colab, either through uploading it from your computer or connecting via GitHub
+ - Set the Runtime environment as you see fit
+ - On the left-hand toolbar, click on the folder icon(should be at the bottom). This will allow you to upload files
+ - Upload the data/IndexFundsData.csv file, and the IndexModel/trading_env.py file to the main folder
+ - Run all the code modules
+ - when prompted allow access to your Google Drive, as that is where it will save the results
+ - right after the Google Drive prompt are all the model parameters, adjust them how you see fit.
+ - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
+
+
+### On a PC
+ - Open the data/CreateIndexFundDataSet.ipynb Jupyter Notebook with your desired Jupyter IDE, we used PyCharm and the Jupyter Notebook web application
+ - Run all the modules, and make sure it doesn't crash
+ - Open the IndexModel/PC_DDQ_LearningModel.ipynb Jupyter Notebook
+ - Right after the imports adjust the model parameters as you see fit
+ - run all the code modules
+ - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
+
+## IndexIntradayModel Folder
+
+### On Google Colab
+ - Open the IndexIntradayModel/GoogleColabModel.ipynb Jupyter notebook up with Google Colab, either through uploading it from your computer or connecting via GitHub
+ - Set the Runtime environment as you see fit
+ - On the left-hand toolbar, click on the folder icon(should be at the bottom). This will allow you to upload files
+ - Upload the data/IndexFundsDataIntraday.csv file, and the IndexIntradayModel/trading_env.py file to the main folder
+ - Run all the code modules
+ - when prompted allow access to your Google Drive, as that is where it will save the results
+ - right after the Google Drive prompt are all the model parameters, adjust them how you see fit.
+ - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
+
+
+### On a PC
+ - Open the data/CreateIndexFundIntradayDataSet.ipynb Jupyter Notebook with your desired Jupyter IDE, we used PyCharm and the Jupyter Notebook web application
+ - Run all the modules, and make sure it doesn't crash
+ - Open the IndexIntradayModel/PC_DDQ_LearningModel.ipynb Jupyter Notebook
+ - Right after the imports adjust the model parameters as you see fit
+ - run all the code modules
+ - Note: once you run the "Create and Initialize Environment" module if you ever need to re-run the modules, you will have to restart the runtime
+
 
 ## FXModel Folder
 
