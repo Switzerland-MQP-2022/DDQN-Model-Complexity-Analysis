@@ -71,7 +71,7 @@ class DataSource:
             import google.colab
             filepath = "FXAssets.h5"
         except:
-            filepath = "../data/ForexAssets.h5"
+            filepath = "../data/FXAssets.h5"
 
 
         with pd.HDFStore(filepath) as store:
