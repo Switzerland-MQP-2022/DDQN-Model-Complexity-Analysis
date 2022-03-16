@@ -70,7 +70,7 @@ class DataSource:
         return df
 
     #preprosesses the data based on the specified model
-    def preprocess_data(self, model=1):
+    def preprocess_data(self):
         # remove nan
         self.data = (self.data.replace((np.inf, -np.inf), np.nan)
                      .drop(['CloseUSO', 'CloseGLD'], axis=1)
@@ -254,7 +254,7 @@ class TradingEnvironment(gym.Env):
 
     def reset(self, training=True):
         """Resets DataSource and TradingSimulator; returns first observation"""
-        self.data_source.reset(training)
+        self.data_source.reset()
         self.simulator.reset()
         return self.data_source.take_step(action=1)[0]
 
